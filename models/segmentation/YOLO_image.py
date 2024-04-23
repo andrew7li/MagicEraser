@@ -3,8 +3,10 @@ import random
 import cv2
 import numpy as np
 
+import sys
+
 # NOTE: CHANGE ME
-FILE_NAME = 'bus-students.jpg'
+FILE_NAME = 'IMG_8519.jpeg'
 
 # Hyperparameter
 CONF_THRESHOLD = 0.5
@@ -34,10 +36,17 @@ for result in results:
         print(f"ID: {idx} of Object: {object_name}")
     break
 
-index = 5
-mask1 = results[0].masks.xy[index]
-points = np.int32([mask1])
-cv2.fillPoly(img, points, color=(0, 0, 0))
+arguments = sys.argv
+if len(arguments) > 1:
+    index = int(arguments[1])
+    mask1 = results[0].masks.xy[index]
+    points = np.int32([mask1])
+    cv2.fillPoly(img, points, color=(0, 0, 0))
+else:
+    for idx, (mask, box) in enumerate(zip(results[0].masks.xy, results[0].boxes)):
+        points = np.int32([mask])
+        cv2.fillPoly(img, points, color=(0, 0, 0))
+
 
 # for result in results:
 #     for idx, (mask, box) in enumerate(zip(obj.masks.xy, obj.boxes)):
