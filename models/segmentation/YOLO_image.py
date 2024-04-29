@@ -1,69 +1,53 @@
-from ultralytics import YOLO
-import random
-import cv2
-import numpy as np
-
 import sys
 
+import cv2
+import numpy as np
+from ultralytics import YOLO
+
 # NOTE: CHANGE ME
-FILE_NAME = 'IMG_8519.jpeg'
+FILE_NAME = 'bus-students.jpg'
+img = cv2.imread("../../data/" + FILE_NAME)
 
 # Hyperparameter
 CONF_THRESHOLD = 0.5
 
-# Load the model
-model = YOLO("yolov8m-seg.pt")
-img = cv2.imread("../../data/" + FILE_NAME)
+def detect_objects(model):
+    """
+    Given the model, detect and print all objects where confidence exceeds CONF_THRESHOLD.
+    """
+    # Detect objects
+    results = model.predict(img, conf=CONF_THRESHOLD)
 
-# if you want all classes
-yolo_classes = list(model.names.values())
-classes_ids = [yolo_classes.index(clas) for clas in yolo_classes]
+    # Loop over detected objects and print them
+    for result in results:
+        for idx, (_, box) in enumerate(zip(result.masks.xy, result.boxes)):
+            class_id = int(box.cls)
+            object_name = model.names[class_id]
+            print(f"ID: {idx} of Object: {object_name}")
+        break
+    return results
 
-results = model.predict(img, conf=CONF_THRESHOLD)
-colors = [random.choices(range(256), k=3) for _ in classes_ids]
+if __name__ == "__main__":
+    arguments = sys.argv
+    if not(len(arguments) == 1 or len(arguments) == 2):
+        raise ValueError("Arguments must be of length 1 or 2! Please try again!")
 
-print(len(results))
-for result in results:
-    for idx, (mask, box) in enumerate(zip(result.masks.xy, result.boxes)):
-        points = np.int32([mask])
-        # cv2.polylines(img, points, True, (255, 0, 0), 1)
-        color_number = classes_ids.index(int(box.cls[0]))
-        # cv2.fillPoly(img, points, colors[color_number])
-        # cv2.fillPoly(img, points, color=(0, 0, 0))
+    # Load the model and detect objects
+    model = YOLO("yolov8m-seg.pt")
+    results = detect_objects(model)
 
-        class_id = int(box.cls)
-        object_name = model.names[class_id]
-        print(f"ID: {idx} of Object: {object_name}")
-    break
-
-arguments = sys.argv
-if len(arguments) > 1:
-    index = int(arguments[1])
-    mask1 = results[0].masks.xy[index]
-    points = np.int32([mask1])
-    cv2.fillPoly(img, points, color=(0, 0, 0))
-else:
-    for idx, (mask, box) in enumerate(zip(results[0].masks.xy, results[0].boxes)):
-        points = np.int32([mask])
+    if len(arguments) == 1:
+        for idx, (mask, box) in enumerate(zip(results[0].masks.xy, results[0].boxes)):
+            points = np.int32([mask])
+            cv2.fillPoly(img, points, color=(0, 0, 0))
+    else:
+        index = int(arguments[1])
+        mask1 = results[0].masks.xy[index]
+        points = np.int32([mask1])
         cv2.fillPoly(img, points, color=(0, 0, 0))
-
-
-# for result in results:
-#     for idx, (mask, box) in enumerate(zip(obj.masks.xy, obj.boxes)):
-#         points = np.int32([mask])
-#         # cv2.polylines(img, points, True, (255, 0, 0), 1)
-#         color_number = classes_ids.index(int(box.cls[0]))
-#         # cv2.fillPoly(img, points, colors[color_number])
-#         cv2.fillPoly(img, points, color=(0, 0, 0))
-#         class_id = int(box.cls)
-#         object_name = model.names[class_id]
-#         print(f"ID: {idx} of Object: {object_name}")
-
-
-
-
-
-cv2.imshow("Image", img)
-cv2.waitKey(0)
-
-cv2.imwrite("../../results/" + FILE_NAME, img)
+        
+    # Display image
+    cv2.imshow("Image", img)
+    cv2.waitKey(0)
+    # Save image
+    cv2.imwrite("../../results/" + FILE_NAME, img)
