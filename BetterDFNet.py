@@ -1,31 +1,16 @@
 import tensorflow as tf
-from tensorflow.keras.layers import Conv2D, Activation, Concatenate
+import tensorflow_datasets as tfds
+from tensorflow.python.keras import Sequential, Model
+from tensorflow.python.keras.layers import Conv2D, Activation, Concatenate, Layer, UpSampling2D, Conv2DTranspose, \
+    ZeroPadding2D, ReLU, LeakyReLU, ELU
+from keras._tf_keras.keras.layers import BatchNormalization, LayerNormalization
 
 
-class FusionBlock(tf.keras.layers.Layer):
-    def __init__(self, c_feat, c_alpha=1):
-        super(FusionBlock, self).__init__()
-        c_img = 3
-        self.map2img = tf.keras.Sequential([
-            Conv2D(c_img, 1, 1, padding='same'),
-            Activation('sigmoid')
-        ])
-        # Assuming BlendBlock is defined elsewhere
-        self.blend = BlendBlock(c_img * 2, c_alpha)
-
-    def call(self, img_miss, feat_de):
-        img_miss = tf.image.resize(img_miss, feat_de.shape[1:3])
-        raw = self.map2img(feat_de)
-        alpha = self.blend(tf.concat([img_miss, raw], axis=3))
-        result = alpha * raw + (1 - alpha) * img_miss
-        return result, alpha, raw
-
-
-class BlendBlock(tf.keras.layers.Layer):
+class BlendBlock(Layer):
     def __init__(self, c_in, c_out, ksize_mid=3, norm='batch', act='relu'):
         super(BlendBlock, self).__init__()
         c_mid = max(c_in // 2, 32)
-        self.blend = tf.keras.Sequential([
+        self.blend = Sequential([
             Conv2D(c_mid, 1, 1, padding='same'),
             Activation('relu'),
             Conv2D(c_out, ksize_mid, 1, padding='same'),
@@ -34,11 +19,29 @@ class BlendBlock(tf.keras.layers.Layer):
             Activation('sigmoid')
         ])
 
-    def call(self, x):
+    def call(self, x, **kwargs):
         return self.blend(x)
 
 
-class DecodeBlock(tf.keras.layers.Layer):
+class FusionBlock(Layer):
+    def __init__(self, c_feat, c_alpha=1):
+        super(FusionBlock, self).__init__()
+        c_img = 3
+        self.map2img = Sequential([
+            Conv2D(c_img, 1, 1, padding='same'),
+            Activation('sigmoid')
+        ])
+        self.blend = BlendBlock(c_img * 2, c_alpha)
+
+    def call(self, img_miss, feat_de, **kwargs):
+        img_miss = tf.image.resize(img_miss, feat_de.shape[1:3])
+        raw = self.map2img(feat_de)
+        alpha = self.blend(tf.concat([img_miss, raw], axis=3))
+        result = alpha * raw + (1 - alpha) * img_miss
+        return result, alpha, raw
+
+
+class DecodeBlock(Layer):
     def __init__(self, c_from_up, c_from_down, c_out, mode='nearest',
                  kernel_size=4, scale=2, normalization='batch', activation='relu'):
         super(DecodeBlock, self).__init__()
@@ -50,17 +53,15 @@ class DecodeBlock(tf.keras.layers.Layer):
 
         self.up = UpSampling2D(size=(scale, scale), interpolation=mode)
 
-        layers = []
-        layers.append(
-            Conv2D(self.c_out, kernel_size, strides=1, padding='same'))
+        layers = [Conv2D(self.c_out, kernel_size, strides=1, padding='same')]
         if normalization:
             # Assuming get_norm is defined elsewhere
             layers.append(get_norm(normalization, self.c_out))
         if activation:
             layers.append(Activation(activation))
-        self.decode = tf.keras.Sequential(layers)
+        self.decode = Sequential(layers)
 
-    def call(self, x, concat=None):
+    def call(self, x, concat=None, **kwargs):
         out = self.up(x)
         if self.c_from_down > 0:
             out = Concatenate(axis=-1)([out, concat])
@@ -68,10 +69,10 @@ class DecodeBlock(tf.keras.layers.Layer):
         return out
 
 
-from tensorflow.keras.layers import Conv2D, Activation
+class EncodeBlock(Layer):
+    def build(self, size):
+        print('build', size)
 
-
-class EncodeBlock(tf.keras.layers.Layer):
     def __init__(self, in_channels, out_channels, kernel_size, stride,
                  normalization=None, activation=None):
         super(EncodeBlock, self).__init__()
@@ -79,23 +80,18 @@ class EncodeBlock(tf.keras.layers.Layer):
         self.c_in = in_channels
         self.c_out = out_channels
 
-        layers = []
-        layers.append(
-            Conv2D(self.c_out, kernel_size, strides=stride, padding='same'))
+        layers = [Conv2D(self.c_out, kernel_size, strides=stride, padding='same')]
         if normalization:
             layers.append(get_norm(normalization, self.c_out))
         if activation:
             layers.append(Activation(activation))
-        self.encode = tf.keras.Sequential(layers)
+        self.encode = Sequential(layers)
 
-    def call(self, x):
+    def call(self, x, **kwargs):
         return self.encode(x)
 
 
-from tensorflow.keras.layers import Conv2DTranspose, UpSampling2D
-
-
-class UpBlock(tf.keras.layers.Layer):
+class UpBlock(Layer):
     def __init__(self, mode='nearest', scale=2, channel=None, kernel_size=4):
         super(UpBlock, self).__init__()
 
@@ -108,14 +104,11 @@ class UpBlock(tf.keras.layers.Layer):
 
             self.up = upsample
 
-    def call(self, x):
+    def call(self, x, **kwargs):
         return self.up(x)
 
 
-from tensorflow.keras.layers import Conv2DTranspose
-
-
-class ConvTranspose2dSame(tf.keras.layers.Layer):
+class ConvTranspose2dSame(Layer):
     def __init__(self, in_channels, out_channels, kernel_size, stride):
         super(ConvTranspose2dSame, self).__init__()
 
@@ -132,11 +125,8 @@ class ConvTranspose2dSame(tf.keras.layers.Layer):
         return self.trans_conv(x)
 
 
-from tensorflow.keras.layers import Conv2D, ZeroPadding2D
-from tensorflow.keras import Sequential
 
-
-class Conv2dSame(tf.keras.layers.Layer):
+class Conv2dSame(Layer):
     def __init__(self, in_channels, out_channels, kernel_size, stride):
         super(Conv2dSame, self).__init__()
 
@@ -161,9 +151,6 @@ class Conv2dSame(tf.keras.layers.Layer):
         return self.conv(x)
 
 
-from tensorflow.keras.layers import ReLU, ELU, LeakyReLU, Activation
-
-
 def get_activation(name):
     if name == 'relu':
         activation = ReLU()
@@ -180,9 +167,6 @@ def get_activation(name):
     return activation
 
 
-from tensorflow.keras.layers import BatchNormalization, LayerNormalization
-
-
 def get_norm(name, out_channels):
     if name == 'batch':
         norm = BatchNormalization()
@@ -193,11 +177,7 @@ def get_norm(name, out_channels):
     return norm
 
 
-import tensorflow as tf
-from tensorflow.keras.layers import Conv2D, Activation, Concatenate
-
-
-class DFNet(tf.keras.Model):
+class DFNet(Model):
     def __init__(
             self, c_img=3, c_mask=1, c_alpha=3,
             mode='nearest', norm='batch', act_en='relu', act_de='relu',
@@ -275,16 +255,10 @@ if __name__ == '__main__':
     print('hello world')
 
     # model = DFNet(inputs= tf.random.normal(shape=(2, 3, 4, 5)), outputs=tf.random.normal(shape=(3, 2)))
-    model = DFNet()
-    
-    # model = tf.keras.Sequential([tf.keras.layers.Dense(500)])
-    model.compile(
-        loss=tf.keras.losses.BinaryCrossentropy(),
-        metrics=[
-            tf.keras.metrics.BinaryAccuracy(),
-            tf.keras.metrics.FalseNegatives(),
-        ],
-
-    )
-    model.build((None, None, None, 3))
+    # model = DFNet()
+    data = tfds.load('places365_small', split='test', download=True)
+    print(len(data))
+    model = tf.keras.Sequential([tf.keras.layers.Dense(500)])
+    model.compile()
+    model.fit()
     model.summary()
