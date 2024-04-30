@@ -1,9 +1,167 @@
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from tensorflow.python.keras import Sequential, Model
-from tensorflow.python.keras.layers import Conv2D, Activation, Concatenate, Layer, UpSampling2D, Conv2DTranspose, \
+from tensorflow.keras import Sequential, Model
+from tensorflow.keras.layers import Conv2D, Activation, Concatenate, Layer, UpSampling2D, Conv2DTranspose, \
     ZeroPadding2D, ReLU, LeakyReLU, ELU
-from keras._tf_keras.keras.layers import BatchNormalization, LayerNormalization
+from keras.layers import BatchNormalization, LayerNormalization
+from tensorflow.keras.applications import VGG16
+
+
+class ReconstructionLoss(tf.keras.losses.Loss):
+    def __init__(self):
+        super().__init__()
+        self.l1 = tf.keras.losses.MeanAbsoluteError()
+
+    def call(self, results, targets):
+        loss = 0.
+        for res, target in zip(results, targets):
+            loss += self.l1(res, target)
+        return loss / tf.cast(tf.size(results), tf.float32)
+
+
+class VGGFeature(tf.keras.Model):
+    def __init__(self):
+        super().__init__()
+
+        vgg16 = VGG16(include_top=False, weights='imagenet')
+        vgg16.trainable = False
+
+        self.vgg16_layers = vgg16.layers
+        # Define the layers for feature extraction
+        self.vgg16_pool_1 = tf.keras.Sequential(self.vgg16_layers[0:5])
+        self.vgg16_pool_2 = tf.keras.Sequential(self.vgg16_layers[5:10])
+        self.vgg16_pool_3 = tf.keras.Sequential(self.vgg16_layers[10:17])
+
+    def call(self, x):
+        # Extract features
+        pool_1 = self.vgg16_pool_1(x)
+        pool_2 = self.vgg16_pool_2(pool_1)
+        pool_3 = self.vgg16_pool_3(pool_2)
+
+        return [pool_1, pool_2, pool_3]
+
+
+class PerceptualLoss(tf.keras.losses.Loss):
+    def __init__(self):
+        super().__init__()
+        self.l1loss = tf.keras.losses.MeanAbsoluteError()
+
+    def call(self, vgg_results, vgg_targets):
+        loss = 0.
+        for vgg_res, vgg_target in zip(vgg_results, vgg_targets):
+            for feat_res, feat_target in zip(vgg_res, vgg_target):
+                loss += self.l1loss(feat_res, feat_target)
+        return loss / tf.cast(tf.size(vgg_results), dtype=tf.float32)
+
+class StyleLoss(tf.keras.losses.Loss):
+    def __init__(self):
+        super().__init__()
+        self.l1loss = tf.keras.losses.MeanAbsoluteError()
+
+    def gram(self, feature):
+        shape = tf.shape(feature)
+        n, c, h, w = shape[0], shape[1], shape[2], shape[3]
+        feature = tf.reshape(feature, (n, c, h * w))
+        gram_mat = tf.linalg.matmul(feature, feature, transpose_b=True)
+        return gram_mat / tf.cast(c * h * w, tf.float32)
+
+    def call(self, vgg_results, vgg_targets):
+        loss = 0.
+        for vgg_res, vgg_target in zip(vgg_results, vgg_targets):
+            for feat_res, feat_target in zip(vgg_res, vgg_target):
+                loss += self.l1loss(self.gram(feat_res), self.gram(feat_target))
+        return loss / tf.cast(tf.size(vgg_results), tf.float32)
+    
+
+class TotalVariationLoss(tf.keras.losses.Loss):
+    def __init__(self, c_img=3):
+        super().__init__()
+        self.c_img = c_img
+        # Define the kernel for convolution
+        kernel = tf.constant([
+            [0, 1, 0],
+            [1, -2, 0],
+            [0, 0, 0]], dtype=tf.float32)
+        kernel = tf.reshape(kernel, (1, 1, 3, 3))
+        kernel = tf.tile(kernel, [c_img, 1, 1, 1])
+        self.kernel = tf.Variable(kernel, trainable=False)
+
+    def gradient(self, x):
+        return tf.nn.depthwise_conv2d(
+            x, self.kernel, strides=[1, 1, 1, 1], padding='SAME')
+
+    def call(self, results, mask):
+        loss = 0.
+        for res in results:
+            # Resize mask to match the dimensions of the result
+            resized_mask = tf.image.resize(mask, tf.shape(res)[1:3])
+            # Calculate the gradient
+            grad = self.gradient(res) * resized_mask
+            # Compute the mean of the absolute values of the gradient
+            loss += tf.reduce_mean(tf.abs(grad))
+        return loss / tf.cast(tf.size(results), tf.float32)
+
+class InpaintLoss(tf.keras.losses.Loss):
+    def __init__(
+            self, c_img=3, w_l1=6., w_percep=0.1, w_style=240., w_tv=0.1,
+            structure_layers=[0, 1, 2, 3, 4, 5],
+            texture_layers=[0, 1, 2]):
+        super().__init__()
+
+        self.l_struct = structure_layers
+        self.l_text = texture_layers
+
+        self.w_l1 = w_l1
+        self.w_percep = w_percep
+        self.w_style = w_style
+        self.w_tv = w_tv
+
+        # Initialize the loss components with their respective TensorFlow versions
+        self.reconstruction_loss = ReconstructionLoss()
+        self.vgg_feature = VGGFeature()
+        self.style_loss = StyleLoss()
+        self.perceptual_loss = PerceptualLoss()
+        self.tv_loss = TotalVariationLoss(c_img)
+
+    def call(self, results, target, mask):
+        # Resize target to match the dimensions of the results
+        targets = [tf.image.resize(target, tf.shape(res)[1:3]) for res in results]
+
+        loss_struct = 0.
+        loss_text = 0.
+        loss_list = {}
+
+        if len(self.l_struct) > 0:
+            struct_r = [results[i] for i in self.l_struct]
+            struct_t = [targets[i] for i in self.l_struct]
+
+            # Calculate structural loss
+            loss_struct = self.reconstruction_loss(struct_r, struct_t) * self.w_l1
+            loss_list['reconstruction_loss'] = loss_struct.numpy()
+
+        if len(self.l_text) > 0:
+            text_r = [targets[i] for i in self.l_text]
+            text_t = [results[i] for i in self.l_text]
+
+            # Extract VGG features
+            vgg_r = [self.vgg_feature(f) for f in text_r]
+            vgg_t = [self.vgg_feature(t) for t in text_t]
+
+            # Calculate style, perceptual, and total variation losses
+            loss_style = self.style_loss(vgg_r, vgg_t) * self.w_style
+            loss_percep = self.perceptual_loss(vgg_r, vgg_t) * self.w_percep
+            loss_tv = self.tv_loss(text_r, mask) * self.w_tv
+
+            loss_text = loss_style + loss_percep + loss_tv
+            loss_list.update({
+                'perceptual_loss': loss_percep.numpy(),
+                'style_loss': loss_style.numpy(),
+                'total_variation_loss': loss_tv.numpy()
+            })
+
+        loss_total = loss_struct + loss_text
+
+        return loss_total, loss_list
 
 
 class BlendBlock(Layer):
@@ -253,12 +411,30 @@ class DFNet(Model):
 
 if __name__ == '__main__':
     print('hello world')
+    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
 
     # model = DFNet(inputs= tf.random.normal(shape=(2, 3, 4, 5)), outputs=tf.random.normal(shape=(3, 2)))
     # model = DFNet()
-    data = tfds.load('places365_small', split='test', download=True)
-    print(len(data))
-    model = tf.keras.Sequential([tf.keras.layers.Dense(500)])
-    model.compile()
-    model.fit()
+    x = tfds.load('places365_small', split='test', download=True)
+    # print(dir(x))
+    # for element in x:
+    #     print(
+    #         element['filename'],
+    #         element['image'].shape,
+    #         element['label'],
+    #     )
+    x = x.map(lambda e: (e['image'], tf.one_hot(e['label'], 365)))
+    model = tf.keras.Sequential([
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(365),
+        tf.keras.layers.Softmax(),
+        # tf.keras.layers.Reshape(),
+        ])
+    model.compile(
+        optimizer='adam',
+        loss=tf.keras.losses.BinaryCrossentropy(),
+    )
+
+    model.fit(x.batch(1), epochs=5)
     model.summary()
