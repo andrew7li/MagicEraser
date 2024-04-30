@@ -1,0 +1,174 @@
+$primary-color: #6729f3;
+$secondary-color: #fbfbfb;
+$tertiary-color: #777777;
+
+$text-primary: #6729f3;
+$text-secondary: #000000;
+$text-tertiary: #777777;
+
+$font-size-primary: 2.5rem;
+$font-size-secondary: 2rem;
+$font-size-tertiary: 1rem;
+$font-size-quaternary: 0.75rem;
+// }
+
+.body {
+  background-color: white;
+  color: black;
+  height: 100vh;
+  text-align: center;
+
+  .navbar {
+    display: flex;
+    align-items: center;
+    background-color: aqua;
+    height: 3rem;
+  }
+
+  .headerContainer {
+    margin: 6rem 0 4rem;
+
+    .headerText {
+      font-size: $font-size-primary;
+      font-weight: 700;
+
+      span {
+        color: $text-primary;
+      }
+    }
+  }
+
+  .imageContainer {
+    border: 3px solid blue;
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+
+    .imageDemoContainer {
+      border-radius: 1.5rem;
+      border: 3px solid red;
+      width: 40%;
+      height: 400px;
+
+      img {
+        border-radius: 1.5rem;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+
+    .imageUploadContainer {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 1.5rem;
+      border: 3px solid green;
+      width: 40%;
+      height: 400px;
+      padding: 1rem 0;
+
+      p {
+        color: $text-tertiary;
+        text-align: center;
+        font-size: $font-size-quaternary;
+      }
+
+      .uploadImageDragAndDropContainer {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+
+        .uploadImageTextLabel {
+          border: 1px dashed rgba(63, 59, 87, 0.5);
+          border-radius: 16px;
+          display: grid;
+          justify-content: center;
+          width: 90%;
+          padding: 10px;
+
+          ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+          }
+
+          ul:first-child {
+            font-weight: 400;
+          }
+        }
+      }
+
+      .uploadImageButtonLabel {
+        width: 100%;
+
+        .uploadButton {
+          background: $primary-color;
+          margin: auto;
+          cursor: pointer;
+          width: 100%;
+          border-radius: 1rem;
+          height: 3.5rem;
+          border: none;
+          color: #fff;
+          font-size: 20px;
+          letter-spacing: 0.5px;
+          font-weight: 500;
+          display: flex;
+          position: relative;
+          justify-content: center;
+          align-items: center;
+          width: 90%;
+          padding: 10px;
+        }
+      }
+
+      .sampleImagesContainer {
+        width: 90%;
+        padding: 10px;
+
+        p {
+          font-size: $font-size-tertiary;
+          margin-bottom: 1rem;
+          text-align: left;
+        }
+
+        ul {
+          list-style-type: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: row;
+          flex-wrap: wrap;
+          justify-content: flex-start;
+          align-items: flex-end;
+          gap: 1rem;
+
+          li {
+            img {
+              height: 3rem;
+              width: 3rem;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .descriptionContainer {
+    margin-top: 3.5rem;
+
+    strong {
+      color: $text-secondary;
+      font-weight: 500;
+    }
+
+    p {
+      color: $text-tertiary;
+      margin-top: 1rem;
+    }
+  }
+}
