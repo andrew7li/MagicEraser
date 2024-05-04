@@ -123,7 +123,9 @@ class InpaintLoss(tf.keras.losses.Loss):
         self.perceptual_loss = PerceptualLoss()
         self.tv_loss = TotalVariationLoss(c_img)
 
-    def call(self, results, target, mask):
+    # todo add mask
+    def call(self, results, target):
+        print(results.shape, target.shape)
         # Resize target to match the dimensions of the results
         targets = [tf.image.resize(target, tf.shape(res)[1:3]) for res in results]
 
@@ -228,9 +230,6 @@ class DecodeBlock(Layer):
 
 
 class EncodeBlock(Layer):
-    def build(self, size):
-        print('build', size)
-
     def __init__(self, in_channels, out_channels, kernel_size, stride,
                  normalization=None, activation=None):
         super(EncodeBlock, self).__init__()
@@ -387,7 +386,11 @@ class DFNet(Model):
             if fuse:
                 self.__setattr__('fuse_{}'.format(i), fuse)
 
-    def call(self, img_miss, mask):
+    # img_miss_with_mask should be an array of [img_miss, mask]
+    def call(self, img_miss_with_mask):
+        print(tf.shape(img_miss_with_mask))
+        img_miss = img_miss_with_mask[0]
+        mask = img_miss_with_mask[1]
         out = tf.concat([img_miss, mask], axis=3)
 
         out_en = [out]
@@ -406,35 +409,39 @@ class DFNet(Model):
                 alphas.append(alpha)
                 raws.append(raw)
 
+        print('Model output', tf.shape(results), tf.shape(alphas), tf.shape(raws))
         return results[::-1], alphas[::-1], raws[::-1]
 
 
-if __name__ == '__main__':
-    print('hello world')
-    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+# TODO: change the [image, image] array to [image, mask] array
+def generate_masks_outputs(e):
+    image = tf.cast(e['image'], tf.float16) / 255.
+    mask = tf.cast(e['image'], tf.float16) / 255.
 
-
-    # model = DFNet(inputs= tf.random.normal(shape=(2, 3, 4, 5)), outputs=tf.random.normal(shape=(3, 2)))
-    # model = DFNet()
-    x = tfds.load('places365_small', split='test', download=True)
-    # print(dir(x))
-    # for element in x:
-    #     print(
-    #         element['filename'],
-    #         element['image'].shape,
-    #         element['label'],
-    #     )
-    x = x.map(lambda e: (e['image'], tf.one_hot(e['label'], 365)))
-    model = tf.keras.Sequential([
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(365),
-        tf.keras.layers.Softmax(),
-        # tf.keras.layers.Reshape(),
-        ])
-    model.compile(
-        optimizer='adam',
-        loss=tf.keras.losses.BinaryCrossentropy(),
+    return (
+        [image, mask],
+        image,
     )
 
-    model.fit(x.batch(1), epochs=5)
+
+EPOCHS = 1
+BATCH_SIZE = 42
+
+tf.compat.v1.disable_eager_execution()
+
+if __name__ == '__main__':
+    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
+    x = tfds.load('places365_small', split='test', download=True)
+    x = x.map(generate_masks_outputs)
+    x = x.shuffle(512)
+    x = x.batch(BATCH_SIZE)
+
+    model = DFNet()
+    model.compile(
+        optimizer='adam',
+        loss=InpaintLoss(),
+    )
+
+    model.fit(x, epochs=EPOCHS)
     model.summary()
