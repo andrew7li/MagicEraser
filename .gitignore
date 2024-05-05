@@ -1,3 +1,5 @@
 # YOLO SEGMENTATION OUTPUTS
 yolov8m-seg.pt
 yolov8n-seg.pt
+venv/
+.idea/
