@@ -17,11 +17,11 @@ export const metadata: Metadata = {
     description:
       "Computer vision project that removes objects with AI Magic Eraser",
     // siteName: "Magic Eraser",
-    // images: [
-    // {
-    // url: "/icon",
-    // },
-    // ],
+    images: [
+      {
+        url: "/icon.ico",
+      },
+    ],
   },
 };
 
