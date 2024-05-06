@@ -9,7 +9,7 @@ export default function Home() {
       <TopNav />
       <div className={styles.headerContainer}>
         <p className={styles.headerText}>
-          <span>Remove Objects with</span> AI Magic Eraser
+          remove objects with <span>magic eraser</span>
         </p>
       </div>
       <div className={styles.imageContainer}>

@@ -2,7 +2,7 @@ $primary-color: #6729f3;
 $secondary-color: #fbfbfb;
 $tertiary-color: #777777;
 
-$text-primary: #6729f3;
+$text-primary: #cdabec;
 $text-secondary: #000000;
 $text-tertiary: #777777;
 
@@ -18,6 +18,7 @@ $font-size-quaternary: 0.75rem;
   min-height: 100vh;
   // height: 100vh;
   text-align: center;
+  text-transform: lowercase;
 
   .navbar {
     display: flex;
@@ -32,10 +33,16 @@ $font-size-quaternary: 0.75rem;
     .headerText {
       font-size: $font-size-primary;
       font-weight: 700;
-
       span {
-        color: $text-primary;
+        border-radius: 1em 0 1em 0;
+        background-image: linear-gradient(
+          -100deg,
+          rgba(129, 10, 165, 0.1),
+          rgba(129, 0, 165, 0.3) 80%,
+          rgba(129, 0, 165, 0.5)
+        );
       }
+      
     }
   }
 
@@ -119,14 +126,14 @@ $font-size-quaternary: 0.75rem;
         width: 100%;
 
         .uploadButton {
-          background: $primary-color;
+          background: rgba(129, 0, 165, 0.2);
           margin: auto;
           cursor: pointer;
           width: 100%;
           border-radius: 1rem;
           height: 3.5rem;
           border: none;
-          color: #fff;
+          color: #000000;
           font-size: 20px;
           letter-spacing: 0.5px;
           font-weight: 500;
@@ -139,7 +146,8 @@ $font-size-quaternary: 0.75rem;
         }
 
         .uploadButton:hover {
-          background: #896eca;
+          background: rgba(129, 0, 165, 0.4);
+          color: #ffffff;
         }
       }
 
