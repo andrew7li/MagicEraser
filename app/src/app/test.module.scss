@@ -16,7 +16,6 @@ $font-size-quaternary: 0.75rem;
   background-color: #fbfbfb;
   color: black;
   min-height: 100vh;
-  // height: 100vh;
   text-align: center;
 
   .navbar {
@@ -27,7 +26,7 @@ $font-size-quaternary: 0.75rem;
   }
 
   .headerContainer {
-    margin: 6rem 0 4rem;
+    margin: 7.5rem 0 4rem;
 
     .headerText {
       font-size: $font-size-primary;
