@@ -1,9 +1,22 @@
+"use client";
 import styles from "./test.module.scss";
 
-import { MdOutlineFileUpload } from "react-icons/md";
+import { UploadDropzone } from "@uploadthing/react";
+import { useUploadThing } from "./../utils/uploadthing";
 import TopNav from "./TopNav";
 
+async function compress(file: File) {
+  // Run some compression algorithm on the file
+  return file;
+}
+
 export default function Home() {
+  const { startUpload } = useUploadThing("profileImage", {
+    onClientUploadComplete: () => {
+      alert("Upload Completed");
+    },
+  });
+
   return (
     <div className={styles.body}>
       <TopNav />
@@ -24,9 +37,19 @@ export default function Home() {
             accept="image/jpeg, image/png, image/webp, image/bmp" // Specify accepted file types
             multiple // Allow multiple file uploads if necessary
             // onChange={handleFileUpload} // Implement a function to handle file uploads
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+
+              // Do something with the file before uploading
+              const compressed = await compress(file);
+
+              // Then start the upload of the compressed file
+              await startUpload([compressed]);
+            }}
           />
           <div className={styles.uploadImageDragAndDropContainer}>
-            <label htmlFor="inputFile" className={styles.uploadImageTextLabel}>
+            {/* <label htmlFor="inputFile" className={styles.uploadImageTextLabel}>
               <span>
                 <MdOutlineFileUpload size={20} />
               </span>
@@ -39,11 +62,59 @@ export default function Home() {
             <p>
               *All files are stored privately & encrypted. Only you will see
               them.
-            </p>
+            </p> */}
+            <UploadDropzone
+              endpoint="imageUploader"
+              appearance={{
+                button: {
+                  background: "rgba(129, 0, 165, 0.2)",
+                  margin: "auto",
+                  borderRadius: "1rem",
+                  height: "3.5rem",
+                  border: "none",
+                  color: "#000000",
+                  fontSize: "20px",
+                  letterSpacing: "0.5px",
+                  fontWeight: "700",
+                  display: "flex",
+                  position: "relative",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  width: "90%",
+                  padding: "10px",
+                  textTransform: "lowercase",
+                },
+                container: {
+                  width: "90%",
+                  cursor: "pointer",
+                },
+              }}
+              onClientUploadComplete={(res) => {
+                // Do something with the response
+                console.log("Files: ", res);
+                alert("Upload Completed");
+              }}
+              onUploadError={(error: Error) => {
+                // Do something with the error.
+                alert(`ERROR! ${error.message}`);
+              }}
+            />
           </div>
 
           <label htmlFor="inputFile" className={styles.uploadImageButtonLabel}>
-            <div className={styles.uploadButton}>Upload</div>
+            {/* <div className={styles.uploadButton}>Upload</div> */}
+            {/* <UploadButton
+              endpoint="imageUploader"
+              onClientUploadComplete={(res) => {
+                // Do something with the response
+                console.log("Files: ", res);
+                alert("Upload Completed");
+              }}
+              onUploadError={(error: Error) => {
+                // Do something with the error.
+                alert(`ERROR! ${error.message}`);
+              }}
+            /> */}
           </label>
 
           <div className={styles.sampleImagesContainer}>
@@ -82,3 +153,26 @@ export default function Home() {
     </div>
   );
 }
+
+// "use client";
+
+// import { UploadButton } from "./../utils/uploadthing.ts";
+
+// export default function Home() {
+//   return (
+//     <main className="flex min-h-screen flex-col items-center justify-between p-24">
+// <UploadButton
+//   endpoint="imageUploader"
+//   onClientUploadComplete={(res) => {
+//     // Do something with the response
+//     console.log("Files: ", res);
+//     alert("Upload Completed");
+//   }}
+//   onUploadError={(error: Error) => {
+//     // Do something with the error.
+//     alert(`ERROR! ${error.message}`);
+//   }}
+// />
+//     </main>
+//   );
+// }

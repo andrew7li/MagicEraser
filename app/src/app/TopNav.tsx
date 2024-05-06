@@ -1,6 +1,7 @@
 import React from "react";
 import styles from "./topnav.module.scss";
 import { IoLogoGithub } from "react-icons/io";
+import "@uploadthing/react/styles.css";
 
 export default function TopNav() {
   return (
