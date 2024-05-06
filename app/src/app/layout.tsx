@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     // siteName: "Magic Eraser",
     images: [
       {
-        url: "/icon.ico",
+        url: "https://magic-eraser-mu.vercel.app/icon.ico",
       },
     ],
   },
