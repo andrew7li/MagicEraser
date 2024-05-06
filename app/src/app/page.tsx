@@ -1,10 +1,12 @@
-import Image from "next/image";
 import styles from "./test.module.scss";
+
+import { MdOutlineFileUpload } from "react-icons/md";
+import TopNav from "./TopNav";
 
 export default function Home() {
   return (
     <div className={styles.body}>
-      <div className={styles.navbar}>Magic Eraser</div>
+      <TopNav />
       <div className={styles.headerContainer}>
         <p className={styles.headerText}>
           <span>Remove Objects with</span> AI Magic Eraser
@@ -25,7 +27,9 @@ export default function Home() {
           />
           <div className={styles.uploadImageDragAndDropContainer}>
             <label htmlFor="inputFile" className={styles.uploadImageTextLabel}>
-              <div>Icon</div>
+              <span>
+                <MdOutlineFileUpload size={20} />
+              </span>
               <ul>
                 <li>Drag or drop images here</li>
                 <li>JPG, PNG, JPEG, WEBP, BMP· Max size 5Mb</li>
