@@ -1,7 +1,7 @@
 "use client";
 import styles from "./test.module.scss";
 
-import { UploadDropzone } from "@uploadthing/react";
+import { UploadDropzone } from "./../utils/uploadthing";
 import { useUploadThing } from "./../utils/uploadthing";
 import TopNav from "./TopNav";
 
