@@ -1,3 +1,5 @@
+# import os
+# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import tensorflow as tf
 import tensorflow_datasets as tfds
 from tensorflow.keras import Sequential, Model
@@ -14,9 +16,11 @@ class ReconstructionLoss(tf.keras.losses.Loss):
 
     def call(self, results, targets):
         loss = 0.
+        size = 0
         for res, target in zip(results, targets):
             loss += self.l1(res, target)
-        return loss / tf.cast(tf.size(results), tf.float32)
+            size += tf.size(res)
+        return loss / tf.cast(size, tf.float32)
 
 
 class VGGFeature(tf.keras.Model):
@@ -31,9 +35,9 @@ class VGGFeature(tf.keras.Model):
         self.vgg16_pool_1 = tf.keras.Sequential(self.vgg16_layers[0:5])
         self.vgg16_pool_2 = tf.keras.Sequential(self.vgg16_layers[5:10])
         self.vgg16_pool_3 = tf.keras.Sequential(self.vgg16_layers[10:17])
-
+ 
     def call(self, x):
-        # Extract features
+        x = tf.keras.applications.vgg16.preprocess_input(x)
         pool_1 = self.vgg16_pool_1(x)
         pool_2 = self.vgg16_pool_2(pool_1)
         pool_3 = self.vgg16_pool_3(pool_2)
@@ -49,8 +53,9 @@ class PerceptualLoss(tf.keras.losses.Loss):
     def call(self, vgg_results, vgg_targets):
         loss = 0.
         for vgg_res, vgg_target in zip(vgg_results, vgg_targets):
-            loss += tf.reduce_mean(self.l1loss(vgg_res, vgg_target))
-        return loss / sum(map(lambda x: tf.cast(tf.size(x), tf.float32), vgg_targets))
+            for feat_res, feat_target in zip(vgg_res, vgg_target):
+                loss += self.l1loss(feat_res, feat_target)
+        return loss / len(vgg_results)
 
 
 class StyleLoss(tf.keras.losses.Loss):
@@ -62,15 +67,17 @@ class StyleLoss(tf.keras.losses.Loss):
         shape = tf.shape(feature)
         n, c, h, w = shape[0], shape[1], shape[2], shape[3]
         feature = tf.reshape(feature, (n, c, h * w))
+        # gram_mat = tf.einsum('ijk,ikj->ijj', feature, tf.linalg.matrix_transpose(feature))
+         
         gram_mat = tf.linalg.matmul(feature, feature, transpose_b=True)
         return gram_mat / tf.cast(c * h * w, tf.float32)
 
     def call(self, vgg_results, vgg_targets):
-        print("StyleLoss", len(vgg_results), len(vgg_targets), vgg_results[0].shape)
         loss = 0.
         for vgg_res, vgg_target in zip(vgg_results, vgg_targets):
-            loss += tf.reduce_sum(self.l1loss(self.gram(vgg_res), self.gram(vgg_target)))
-        return loss / sum(map(lambda x: tf.cast(tf.size(x), tf.float32), vgg_targets))
+            for feat_res, feat_target in zip(vgg_res, vgg_target):
+                loss += self.l1loss(self.gram(feat_res), self.gram(feat_target))
+        return loss / len(vgg_results)
 
 
 class TotalVariationLoss(tf.keras.losses.Loss):
@@ -92,14 +99,13 @@ class TotalVariationLoss(tf.keras.losses.Loss):
 
     def call(self, results, mask):
         loss = 0.
-        # Resize mask to match the dimensions of the result
-        resized_mask = tf.image.resize(mask, tf.shape(results)[1:3])
-        # Calculate the gradient
-        grad = self.gradient(results)
-        grad = grad * resized_mask
-        # Compute the mean of the absolute values of the gradient
-        loss += tf.reduce_mean(tf.abs(grad))
-        return loss / tf.cast(tf.size(results), tf.float32)
+
+        for res in results:
+            resized_mask = tf.image.resize(mask, tf.shape(res)[1:3])
+            grad = self.gradient(res) * resized_mask
+            loss += tf.reduce_mean(tf.abs(grad))
+
+        return loss / len(results)
 
 
 class InpaintLoss(tf.keras.losses.Loss):
@@ -129,7 +135,9 @@ class InpaintLoss(tf.keras.losses.Loss):
         # Resize target to match the dimensions of the results
         mask = target[:, 1]
         target = target[:, 0]
-        targets = tf.image.resize(target, tf.shape(results)[1:3])
+
+        results = results[0]
+        targets = [tf.image.resize(target, tf.shape(res)[1:3]) for res in results]
 
         loss_struct = 0.
         loss_text = 0.
@@ -144,12 +152,12 @@ class InpaintLoss(tf.keras.losses.Loss):
             loss_list['reconstruction_loss'] = loss_struct
 
         if len(self.l_text) > 0:
-            text_r = targets  # [targets[i] for i in self.l_text]
-            text_t = targets  # [results[i] for i in self.l_text]
+            text_r = [targets[i] for i in self.l_text]
+            text_t = [results[i] for i in self.l_text]
 
             # Extract VGG features
-            vgg_r = self.vgg_feature(text_r)  # [self.vgg_feature(f) for f in text_r]
-            vgg_t = self.vgg_feature(text_t)  # for t in text_t]
+            vgg_r = [self.vgg_feature(f) for f in text_r]
+            vgg_t = [self.vgg_feature(t) for t in text_t]
 
             # Calculate style, perceptual, and total variation losses
             loss_style = self.style_loss(vgg_r, vgg_t) * self.w_style
@@ -437,6 +445,29 @@ EPOCHS = 1
 BATCH_SIZE = 3
 LOAD_FAKE_DATA = True
 
+@tf.function
+def train_step(x_batch_train, y_batch_train):
+    # Open a GradientTape to record the operations run
+    # during the forward pass, which enables auto-differentiation.
+    with tf.GradientTape() as tape:
+        # Run the forward pass of the layer.
+        # The operations that the layer applies
+        # to its inputs are going to be recorded
+        # on the GradientTape.
+        a, b, c = model(x_batch_train, training=True)  # Logits for this minibatch
+
+        # Compute the loss value for this minibatch.
+        loss_value = loss_fn(y_batch_train, (a, b, c))
+
+    # Use the gradient tape to automatically retrieve
+    # the gradients of the trainable variables with respect to the loss.
+    grads = tape.gradient(loss_value, model.trainable_weights)
+
+    # Run one step of gradient descent by updating
+    # the value of the variables to minimize the loss.
+    optimizer.apply_gradients(zip(grads, model.trainable_weights))
+    return loss_value
+
 if __name__ == '__main__':
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
@@ -454,42 +485,23 @@ if __name__ == '__main__':
         optimizer='adam',
         loss=InpaintLoss(),
     )
-    #
+    
+    
     # model.fit(x, epochs=EPOCHS)
     # model.summary()
 
     epochs = 3
-    optimizer = keras.optimizers.Adam(learning_rate=1e-3)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
     loss_fn = InpaintLoss()
     for epoch in range(epochs):
         print(f"\nStart of epoch {epoch}")
 
         # Iterate over the batches of the dataset.
         for step, (x_batch_train, y_batch_train) in enumerate(x):
-            # Open a GradientTape to record the operations run
-            # during the forward pass, which enables auto-differentiation.
-            with tf.GradientTape() as tape:
-                # Run the forward pass of the layer.
-                # The operations that the layer applies
-                # to its inputs are going to be recorded
-                # on the GradientTape.
-                a, b, c = model(x_batch_train, training=True)  # Logits for this minibatch
-
-                # Compute the loss value for this minibatch.
-                loss_value = loss_fn(y_batch_train, (a, b, c))
-
-            # Use the gradient tape to automatically retrieve
-            # the gradients of the trainable variables with respect to the loss.
-            grads = tape.gradient(loss_value, model.trainable_weights)
-
-            # Run one step of gradient descent by updating
-            # the value of the variables to minimize the loss.
-            optimizer.apply(grads, model.trainable_weights)
-
+            loss_value = train_step(x_batch_train, y_batch_train)
             # Log every 100 batches.
             if step % 100 == 0:
                 print(
                     f"Training loss (for 1 batch) at step {step}: {float(loss_value):.4f}"
                 )
                 print(f"Seen so far: {(step + 1) * BATCH_SIZE} samples")
-
