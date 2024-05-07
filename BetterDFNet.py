@@ -1,4 +1,5 @@
-# import os
+import os
+from tqdm import tqdm
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import tensorflow as tf
 import tensorflow_datasets as tfds
@@ -423,11 +424,11 @@ class DFNet(Model):
 # TODO: change the [image, image] array to [image, mask] array
 def generate_masks_outputs(e):
     image = tf.cast(e['image'], tf.float32) / 255.
-    mask = tf.cast(e['image'], tf.float32) / 255.
-
+    mask = tf.cast(e['image'], tf.float32) / 255. # TODO replace mask with random mask loaded from the masks directory
+    # (256, 256, 3) <- size of the mask
     return (
         [image, mask],
-        image,
+        [image, mask], 
     )
 
 
@@ -441,9 +442,9 @@ def fake_generate_masks_outputs(e):
     )
 
 
-EPOCHS = 1
-BATCH_SIZE = 3
-LOAD_FAKE_DATA = True
+EPOCHS = 10
+BATCH_SIZE = 15
+LOAD_FAKE_DATA = False
 
 @tf.function
 def train_step(x_batch_train, y_batch_train):
@@ -475,7 +476,7 @@ if __name__ == '__main__':
         x = tf.data.Dataset.from_tensor_slices(tf.random.normal((10, 256, 256, 3)))
         x = x.map(fake_generate_masks_outputs)
     else:
-        x = tfds.load('places365_small', split='test', download=True)
+        x = tfds.load('places365_small', split='train', download=True)
         x = x.map(generate_masks_outputs)
     x = x.shuffle(512)
     x = x.batch(BATCH_SIZE)
@@ -486,22 +487,17 @@ if __name__ == '__main__':
         loss=InpaintLoss(),
     )
     
-    
     # model.fit(x, epochs=EPOCHS)
     # model.summary()
 
-    epochs = 3
+    epochs = EPOCHS
     optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
     loss_fn = InpaintLoss()
     for epoch in range(epochs):
         print(f"\nStart of epoch {epoch}")
 
         # Iterate over the batches of the dataset.
-        for step, (x_batch_train, y_batch_train) in enumerate(x):
+        for step, (x_batch_train, y_batch_train) in enumerate(tqdm(x)):
             loss_value = train_step(x_batch_train, y_batch_train)
-            # Log every 100 batches.
-            if step % 100 == 0:
-                print(
-                    f"Training loss (for 1 batch) at step {step}: {float(loss_value):.4f}"
-                )
-                print(f"Seen so far: {(step + 1) * BATCH_SIZE} samples")
+        
+        model.save_weights(f'./checkpoints/my_checkpoint_{epoch}')
