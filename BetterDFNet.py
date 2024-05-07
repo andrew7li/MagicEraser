@@ -8,6 +8,11 @@ from tensorflow.keras.layers import Conv2D, Activation, Concatenate, Layer, UpSa
     ZeroPadding2D, ReLU, LeakyReLU, ELU
 from keras.layers import BatchNormalization, LayerNormalization
 from tensorflow.keras.applications import VGG16
+from os import listdir
+from os.path import isfile, join
+import random
+from PIL import Image
+import numpy as np
 
 
 class ReconstructionLoss(tf.keras.losses.Loss):
@@ -424,11 +429,34 @@ class DFNet(Model):
 # TODO: change the [image, image] array to [image, mask] array
 def generate_masks_outputs(e):
     image = tf.cast(e['image'], tf.float32) / 255.
-    mask = tf.cast(e['image'], tf.float32) / 255. # TODO replace mask with random mask loaded from the masks directory
+    # mask = tf.cast(e['image'], tf.float32) / 255. # TODO replace mask with random mask loaded from the masks directory
+    onlyfiles1 = [join('models/inpaint/download/mask/block_01', f) for f in listdir('models/inpaint/download/mask/block_01') if isfile(join('models/inpaint/download/mask/block_01', f))]
+    onlyfiles2 = [join('models/inpaint/download/mask/block_02', f) for f in listdir('models/inpaint/download/mask/block_02') if isfile(join('models/inpaint/download/mask/block_02', f))]
+    onlyfiles3 = [join('models/inpaint/download/mask/line_01', f) for f in listdir('models/inpaint/download/mask/line_01') if isfile(join('models/inpaint/download/mask/line_01', f))]
+    onlyfiles4 = [join('models/inpaint/download/mask/line_02', f) for f in listdir('models/inpaint/download/mask/line_02') if isfile(join('models/inpaint/download/mask/line_02', f))]
+    onlyfiles5 = [join('models/inpaint/download/mask/line_03', f) for f in listdir('models/inpaint/download/mask/line_03') if isfile(join('models/inpaint/download/mask/line_03', f))]
+    onlyfiles6 = [join('models/inpaint/download/mask/line_04', f) for f in listdir('models/inpaint/download/mask/line_04') if isfile(join('models/inpaint/download/mask/line_04', f))]
+    mask_files = onlyfiles1 + onlyfiles2 + onlyfiles3 + onlyfiles4 + onlyfiles5 + onlyfiles6
+    num_masks = len(mask_files)
+    rand_mask_index = random.randint(1,num_masks) - 1
+    rand_mask_path = mask_files[rand_mask_index]
+
+    rand_mask_img = Image.open(rand_mask_path)
+    rand_mask_img_matrix = np.array(rand_mask_img)
+    
+    resized_mask = np.resize(rand_mask_img_matrix, (256, 256))
+    resized_mask_expanded = np.expand_dims(resized_mask, axis=-1)
+    mask_np = np.tile(resized_mask_expanded, (1, 1, 3))
+
+    mask = tf.cast(mask_np, tf.float32) / 255.
+
+    
+    assert(mask.shape == (256, 256, 3))
+
     # (256, 256, 3) <- size of the mask
     return (
         [image, mask],
-        [image, mask], 
+        [image * mask, mask], 
     )
 
 
@@ -442,7 +470,7 @@ def fake_generate_masks_outputs(e):
     )
 
 
-EPOCHS = 10
+EPOCHS = 1
 BATCH_SIZE = 15
 LOAD_FAKE_DATA = False
 
