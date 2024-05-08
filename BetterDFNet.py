@@ -13,11 +13,12 @@ from os.path import isfile, join
 import random
 from PIL import Image
 import numpy as np
+from matplotlib import pyplot as plt
 
-
+@tf.keras.saving.register_keras_serializable()
 class ReconstructionLoss(tf.keras.losses.Loss):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.l1 = tf.keras.losses.MeanAbsoluteError()
 
     def call(self, results, targets):
@@ -28,10 +29,10 @@ class ReconstructionLoss(tf.keras.losses.Loss):
             size += tf.size(res)
         return loss / tf.cast(size, tf.float32)
 
-
+@tf.keras.saving.register_keras_serializable()
 class VGGFeature(tf.keras.Model):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
         vgg16 = VGG16(include_top=False, weights='imagenet')
         vgg16.trainable = False
@@ -50,10 +51,10 @@ class VGGFeature(tf.keras.Model):
 
         return [pool_1, pool_2, pool_3]
 
-
+@tf.keras.saving.register_keras_serializable()
 class PerceptualLoss(tf.keras.losses.Loss):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.l1loss = tf.keras.losses.MeanAbsoluteError()
 
     def call(self, vgg_results, vgg_targets):
@@ -63,10 +64,10 @@ class PerceptualLoss(tf.keras.losses.Loss):
                 loss += self.l1loss(feat_res, feat_target)
         return loss / len(vgg_results)
 
-
+@tf.keras.saving.register_keras_serializable()
 class StyleLoss(tf.keras.losses.Loss):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.l1loss = tf.keras.losses.MeanAbsoluteError()
 
     def gram(self, feature):
@@ -85,10 +86,10 @@ class StyleLoss(tf.keras.losses.Loss):
                 loss += self.l1loss(self.gram(feat_res), self.gram(feat_target))
         return loss / len(vgg_results)
 
-
+@tf.keras.saving.register_keras_serializable()
 class TotalVariationLoss(tf.keras.losses.Loss):
-    def __init__(self, c_img=3):
-        super().__init__()
+    def __init__(self, c_img=3, **kwargs):
+        super().__init__(**kwargs)
         self.c_img = c_img
         # Define the kernel for convolution
         kernel = tf.constant([
@@ -113,13 +114,13 @@ class TotalVariationLoss(tf.keras.losses.Loss):
 
         return loss / len(results)
 
-
+@tf.keras.saving.register_keras_serializable()
 class InpaintLoss(tf.keras.losses.Loss):
     def __init__(
             self, c_img=3, w_l1=6., w_percep=0.1, w_style=240., w_tv=0.1,
             structure_layers=[0, 1, 2, 3, 4, 5],
-            texture_layers=[0, 1, 2]):
-        super().__init__()
+            texture_layers=[0, 1, 2], **kwargs):
+        super().__init__(**kwargs)
 
         self.l_struct = structure_layers
         self.l_text = texture_layers
@@ -181,10 +182,10 @@ class InpaintLoss(tf.keras.losses.Loss):
 
         return loss_total
 
-
+@tf.keras.saving.register_keras_serializable()
 class BlendBlock(Layer):
-    def __init__(self, c_in, c_out, ksize_mid=3, norm='batch', act='relu'):
-        super(BlendBlock, self).__init__()
+    def __init__(self, c_in, c_out, ksize_mid=3, norm='batch', act='relu', **kwargs):
+        super(BlendBlock, self).__init__(**kwargs)
         c_mid = max(c_in // 2, 32)
         self.blend = Sequential([
             Conv2D(c_mid, 1, 1, padding='same'),
@@ -198,10 +199,10 @@ class BlendBlock(Layer):
     def call(self, x, **kwargs):
         return self.blend(x)
 
-
+@tf.keras.saving.register_keras_serializable()
 class FusionBlock(Layer):
-    def __init__(self, c_feat, c_alpha=1):
-        super(FusionBlock, self).__init__()
+    def __init__(self, c_feat, c_alpha=1, **kwargs):
+        super(FusionBlock, self).__init__(**kwargs)
         c_img = 3
         self.map2img = Sequential([
             Conv2D(c_img, 1, 1, padding='same'),
@@ -216,11 +217,11 @@ class FusionBlock(Layer):
         result = alpha * raw + (1 - alpha) * img_miss
         return result, alpha, raw
 
-
+@tf.keras.saving.register_keras_serializable()
 class DecodeBlock(Layer):
     def __init__(self, c_from_up, c_from_down, c_out, mode='nearest',
-                 kernel_size=4, scale=2, normalization='batch', activation='relu'):
-        super(DecodeBlock, self).__init__()
+                 kernel_size=4, scale=2, normalization='batch', activation='relu', **kwargs):
+        super(DecodeBlock, self).__init__(**kwargs)
 
         self.c_from_up = c_from_up
         self.c_from_down = c_from_down
@@ -244,11 +245,11 @@ class DecodeBlock(Layer):
         out = self.decode(out)
         return out
 
-
+@tf.keras.saving.register_keras_serializable()
 class EncodeBlock(Layer):
     def __init__(self, in_channels, out_channels, kernel_size, stride,
-                 normalization=None, activation=None):
-        super(EncodeBlock, self).__init__()
+                 normalization=None, activation=None, **kwargs):
+        super(EncodeBlock, self).__init__(**kwargs)
 
         self.c_in = in_channels
         self.c_out = out_channels
@@ -263,10 +264,10 @@ class EncodeBlock(Layer):
     def call(self, x, **kwargs):
         return self.encode(x)
 
-
+@tf.keras.saving.register_keras_serializable()
 class UpBlock(Layer):
-    def __init__(self, mode='nearest', scale=2, channel=None, kernel_size=4):
-        super(UpBlock, self).__init__()
+    def __init__(self, mode='nearest', scale=2, channel=None, kernel_size=4, **kwargs):
+        super(UpBlock, self).__init__(**kwargs)
 
         self.mode = mode
         if mode == 'deconv':
@@ -280,10 +281,10 @@ class UpBlock(Layer):
     def call(self, x, **kwargs):
         return self.up(x)
 
-
+@tf.keras.saving.register_keras_serializable()
 class ConvTranspose2dSame(Layer):
-    def __init__(self, in_channels, out_channels, kernel_size, stride):
-        super(ConvTranspose2dSame, self).__init__()
+    def __init__(self, in_channels, out_channels, kernel_size, stride, **kwargs):
+        super(ConvTranspose2dSame, self).__init__(**kwargs)
 
         padding, output_padding = self.deconv_same_pad(kernel_size, stride)
         self.trans_conv = Conv2DTranspose(out_channels, kernel_size, strides=stride, padding='same',
@@ -297,10 +298,10 @@ class ConvTranspose2dSame(Layer):
     def call(self, x):
         return self.trans_conv(x)
 
-
+@tf.keras.saving.register_keras_serializable()
 class Conv2dSame(Layer):
-    def __init__(self, in_channels, out_channels, kernel_size, stride):
-        super(Conv2dSame, self).__init__()
+    def __init__(self, in_channels, out_channels, kernel_size, stride, **kwargs):
+        super(Conv2dSame, self).__init__(**kwargs)
 
         padding = self.conv_same_pad(kernel_size, stride)
         if isinstance(padding, int):
@@ -348,7 +349,7 @@ def get_norm(name, out_channels):
         norm = None
     return norm
 
-
+@tf.keras.saving.register_keras_serializable()
 class DFNet(Model):
     def __init__(
             self, c_img=3, c_mask=1, c_alpha=3,
@@ -455,8 +456,8 @@ def generate_masks_outputs(e):
 
     # (256, 256, 3) <- size of the mask
     return (
-        [image, mask],
-        [image * mask, mask], 
+        [image * mask, mask],
+        [image, mask], 
     )
 
 
@@ -470,9 +471,10 @@ def fake_generate_masks_outputs(e):
     )
 
 
-EPOCHS = 1
+EPOCHS = 3
 BATCH_SIZE = 15
 LOAD_FAKE_DATA = False
+TEST = False
 
 @tf.function
 def train_step(x_batch_train, y_batch_train):
@@ -499,33 +501,59 @@ def train_step(x_batch_train, y_batch_train):
 
 if __name__ == '__main__':
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-
-    if LOAD_FAKE_DATA:
-        x = tf.data.Dataset.from_tensor_slices(tf.random.normal((10, 256, 256, 3)))
-        x = x.map(fake_generate_masks_outputs)
-    else:
-        x = tfds.load('places365_small', split='train', download=True)
-        x = x.map(generate_masks_outputs)
-    x = x.shuffle(512)
-    x = x.batch(BATCH_SIZE)
-
     model = DFNet()
     model.compile(
         optimizer='adam',
         loss=InpaintLoss(),
     )
-    
-    # model.fit(x, epochs=EPOCHS)
-    # model.summary()
 
-    epochs = EPOCHS
-    optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
-    loss_fn = InpaintLoss()
-    for epoch in range(epochs):
-        print(f"\nStart of epoch {epoch}")
+    if not TEST:
+        if LOAD_FAKE_DATA:
+            x = tf.data.Dataset.from_tensor_slices(tf.random.normal((10, 256, 256, 3)))
+            x = x.map(fake_generate_masks_outputs)
+        else:
+            x = tfds.load('places365_small', split='train', download=True)
+            x = x.map(generate_masks_outputs)
+        x = x.shuffle(512) 
+        x = x.batch(BATCH_SIZE)
 
-        # Iterate over the batches of the dataset.
-        for step, (x_batch_train, y_batch_train) in enumerate(tqdm(x)):
-            loss_value = train_step(x_batch_train, y_batch_train)
+        epochs = EPOCHS
+        optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
+        loss_fn = InpaintLoss()
+        for epoch in range(epochs):
+            print(f"\nStart of epoch {epoch}")
+
+            # Iterate over the batches of the dataset.
+            for step, (x_batch_train, y_batch_train) in enumerate(tqdm(x)):
+                loss_value = train_step(x_batch_train, y_batch_train)
+            
+            model.save(f'./trained_models/mymodel2_{epoch}.keras')
+    else:
+        image = Image.open('/home/andrew/image.png')
+        onlyfiles1 = [join('models/inpaint/download/mask/block_01', f) for f in listdir('models/inpaint/download/mask/block_01') if isfile(join('models/inpaint/download/mask/block_01', f))]
+        onlyfiles2 = [join('models/inpaint/download/mask/block_02', f) for f in listdir('models/inpaint/download/mask/block_02') if isfile(join('models/inpaint/download/mask/block_02', f))]
+        onlyfiles3 = [join('models/inpaint/download/mask/line_01', f) for f in listdir('models/inpaint/download/mask/line_01') if isfile(join('models/inpaint/download/mask/line_01', f))]
+        onlyfiles4 = [join('models/inpaint/download/mask/line_02', f) for f in listdir('models/inpaint/download/mask/line_02') if isfile(join('models/inpaint/download/mask/line_02', f))]
+        onlyfiles5 = [join('models/inpaint/download/mask/line_03', f) for f in listdir('models/inpaint/download/mask/line_03') if isfile(join('models/inpaint/download/mask/line_03', f))]
+        onlyfiles6 = [join('models/inpaint/download/mask/line_04', f) for f in listdir('models/inpaint/download/mask/line_04') if isfile(join('models/inpaint/download/mask/line_04', f))]
+        mask_files = onlyfiles1 + onlyfiles2 + onlyfiles3 + onlyfiles4 + onlyfiles5 + onlyfiles6
+        num_masks = len(mask_files)
+        rand_mask_index = random.randint(1,num_masks) - 1
+        rand_mask_path = mask_files[rand_mask_index]
+
+        rand_mask_img = Image.open(rand_mask_path)
+        rand_mask_img_matrix = np.array(rand_mask_img)
         
-        model.save_weights(f'./checkpoints/my_checkpoint_{epoch}')
+        resized_mask = np.resize(rand_mask_img_matrix, (256, 256))
+        resized_mask_expanded = np.expand_dims(resized_mask, axis=-1)
+        mask_np = np.tile(resized_mask_expanded, (1, 1, 3))
+
+        mask = tf.cast(mask_np, tf.float32) / 255.
+        latest = tf.train.latest_checkpoint('./checkpoints')
+        print(latest)
+        # model.load_weights(latest)
+        model = tf.keras.models.load_model('./trained_models/mymodel1_0.keras')
+        a, b, c = model.call(np.asarray([[image * mask, mask]]), training = False)
+        # print(a.shape, b.shape, c.shape)
+        # print(a[0].shape)
+        Image.fromarray(np.asarray(a[0][0] * 255, dtype=np.uint8)).save('/home/andrew/output1.png')
