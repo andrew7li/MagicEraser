@@ -3,3 +3,6 @@ yolov8m-seg.pt
 yolov8n-seg.pt
 venv/
 .idea/
+.env/
+__pycache__/
+outputs/
