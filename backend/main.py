@@ -1,17 +1,22 @@
 import uuid
-
 import torch
+import numpy as np
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from diffusers import AutoPipelineForInpainting
 from diffusers.utils import load_image
+from ultralytics import YOLO
+from fastapi import HTTPException
 
 
-pipeline = AutoPipelineForInpainting.from_pretrained(
+yolo_model = YOLO("yolov8m-seg.pt")
+YOLO_CONF_THRESHOLD = 0.5
+
+inpaint_pipeline = AutoPipelineForInpainting.from_pretrained(
     "runwayml/stable-diffusion-inpainting", torch_dtype=torch.float16, variant="fp16"
 ).to("cuda")
-pipeline.enable_model_cpu_offload()
+inpaint_pipeline.enable_model_cpu_offload()
 
 app = FastAPI()
 app.add_middleware(
@@ -29,6 +34,7 @@ class ImageSegmentRequestBody(BaseModel):
 
 class InpaintRequestBody(BaseModel):
     url: str
+    prompt: str
 
 
 @app.get("/")
@@ -37,52 +43,49 @@ async def read_root():
 
 
 @app.post("/getImageSegments")
-async def get_image_segments(body: ImageSegmentRequestBody):
+def get_image_segments(body: ImageSegmentRequestBody):
+    if not body.url.startswith("https://"):
+        raise HTTPException(400, 'URL should begin with "https://"')
+
+    try:
+        results = yolo_model.predict(body.url, conf=YOLO_CONF_THRESHOLD)
+    except Exception as e:
+        raise HTTPException(400, "Unable to download image from provided URL")
+
+    objects = []
+    for result in results:
+        for mask, box in zip(result.masks.xy, result.boxes):
+            object_name = yolo_model.names[int(box.cls)]
+            min_x = int(np.min(mask[:, 0]))
+            max_x = int(np.max(mask[:, 0]))
+            min_y = int(np.min(mask[:, 1]))
+            max_y = int(np.min(mask[:, 1]))
+
+            objects.append(
+                {
+                    "uuid": str(uuid.uuid4()),
+                    "objectType": object_name,
+                    "topLeft": {
+                        "x": min_x,
+                        "y": min_y,
+                    },
+                    "topRight": {
+                        "x": max_x,
+                        "y": min_y,
+                    },
+                    "bottomRight": {
+                        "x": max_x,
+                        "y": max_y,
+                    },
+                    "bottomLeft": {
+                        "x": min_x,
+                        "y": max_y,
+                    },
+                }
+            )
+
     return {
-        "objects": [
-            {
-                "uuid": str(uuid.uuid4()),
-                "objectType": "bus",
-                "topLeft": {
-                    "x": 50,
-                    "y": 100,
-                },
-                "topRight": {
-                    "x": 100,
-                    "y": 100,
-                },
-                "bottomRight": {
-                    "x": 100,
-                    "y": 200,
-                },
-                "bottomLeft": {
-                    "x": 50,
-                    "y": 200,
-                },
-                "confidence": 0.5,
-            },
-            {
-                "uuid": str(uuid.uuid4()),
-                "objectType": "car",
-                "topLeft": {
-                    "x": 50,
-                    "y": 100,
-                },
-                "topRight": {
-                    "x": 100,
-                    "y": 100,
-                },
-                "bottomRight": {
-                    "x": 100,
-                    "y": 200,
-                },
-                "bottomLeft": {
-                    "x": 50,
-                    "y": 200,
-                },
-                "confidence": 0.9,
-            },
-        ]
+        "objects": objects,
     }
 
 
@@ -102,5 +105,7 @@ def test():
         "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/road-mask.png"
     )
 
-    image = pipeline(prompt="road", image=init_image, mask_image=mask_image).images[0]
+    image = inpaint_pipeline(
+        prompt="road", image=init_image, mask_image=mask_image
+    ).images[0]
     image.save("/home/abhyudaya/MagicEraser/outputs/output1.png")
