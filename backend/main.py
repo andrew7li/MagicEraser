@@ -14,6 +14,8 @@ from fastapi import HTTPException
 
 yolo_model = YOLO("yolov8m-seg.pt")
 YOLO_CONF_THRESHOLD = 0.5
+MASK_DATA_DIRECTORY = "/home/abhyudaya/MagicEraser/data/masks"
+
 
 inpaint_pipeline = AutoPipelineForInpainting.from_pretrained(
     "runwayml/stable-diffusion-inpainting", torch_dtype=torch.float16, variant="fp16"
@@ -31,8 +33,7 @@ app.add_middleware(
 
 
 def save_mask(uuid_, mask):
-    DATA_DIRECTORY = "/home/abhyudaya/MagicEraser/data/masks"
-    file = os.path.join(DATA_DIRECTORY, f"{uuid_}.png")
+    file = os.path.join(MASK_DATA_DIRECTORY, f"{uuid_}.png")
     with open(file, "w+") as f:
         cv2.imwrite(file, mask)
 
@@ -44,6 +45,7 @@ class ImageSegmentRequestBody(BaseModel):
 class InpaintRequestBody(BaseModel):
     url: str
     prompt: str
+    uuid: str
 
 
 @app.get("/")
@@ -107,22 +109,16 @@ def get_image_segments(body: ImageSegmentRequestBody):
 
 @app.post("/inpaintImage")
 async def inpaint(body: InpaintRequestBody):
-    return {
-        "url": "https://scholar.googleusercontent.com/citations?view_op=medium_photo&user=qIvZT74AAAAJ&citpid=7",
-    }
-
-
-@app.get("/test")
-def test():
-    init_image = load_image(
-        "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/inpaint.png"
-    )
-
-    mask_image = load_image(
-        "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/road-mask.png"
-    )
+    # TODO verify image URL and mask path
+    init_image = load_image(body.url)
+    mask_image = load_image(os.path.join(MASK_DATA_DIRECTORY, f'{body.uuid}.png'))
 
     image = inpaint_pipeline(
         prompt="road", image=init_image, mask_image=mask_image
     ).images[0]
+
     image.save("/home/abhyudaya/MagicEraser/outputs/output1.png")
+
+    return {
+        "url": "https://scholar.googleusercontent.com/citations?view_op=medium_photo&user=qIvZT74AAAAJ&citpid=7",
+    }
