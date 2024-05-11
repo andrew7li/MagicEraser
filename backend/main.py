@@ -114,11 +114,12 @@ async def inpaint(body: InpaintRequestBody):
     mask_image = load_image(os.path.join(MASK_DATA_DIRECTORY, f'{body.uuid}.png'))
 
     image = inpaint_pipeline(
-        prompt="road", image=init_image, mask_image=mask_image
+        prompt=body.prompt, image=init_image, mask_image=mask_image
     ).images[0]
 
+    # FIXME instead of saving image locally, upload it somewhere and return the link
     image.save("/home/abhyudaya/MagicEraser/outputs/output1.png")
 
-    return {
+    return {  # FIXME
         "url": "https://scholar.googleusercontent.com/citations?view_op=medium_photo&user=qIvZT74AAAAJ&citpid=7",
     }
