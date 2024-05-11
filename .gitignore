@@ -6,3 +6,8 @@ venv/
 .env/
 __pycache__/
 outputs/
+backend/*.jpg
+backend/*.png
+backend/*.webp
+backend/*.jpeg
+backend/*.bmp

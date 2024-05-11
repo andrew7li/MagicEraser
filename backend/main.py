@@ -1,3 +1,5 @@
+import os
+import cv2
 import uuid
 import torch
 import numpy as np
@@ -28,6 +30,13 @@ app.add_middleware(
 )
 
 
+def save_mask(uuid_, mask):
+    DATA_DIRECTORY = "/home/abhyudaya/MagicEraser/data/masks"
+    file = os.path.join(DATA_DIRECTORY, f"{uuid_}.png")
+    with open(file, "w+") as f:
+        cv2.imwrite(file, mask)
+
+
 class ImageSegmentRequestBody(BaseModel):
     url: str
 
@@ -44,6 +53,8 @@ async def read_root():
 
 @app.post("/getImageSegments")
 def get_image_segments(body: ImageSegmentRequestBody):
+    # TODO do not allow our hostname -- could lead to infinite recursion
+    # TODO verify the URL is actually a valid image URL
     if not body.url.startswith("https://"):
         raise HTTPException(400, 'URL should begin with "https://"')
 
@@ -60,6 +71,11 @@ def get_image_segments(body: ImageSegmentRequestBody):
             max_x = int(np.max(mask[:, 0]))
             min_y = int(np.min(mask[:, 1]))
             max_y = int(np.min(mask[:, 1]))
+            uuid_ = str(uuid.uuid4())
+            mask_image = np.zeros_like(result.orig_img)
+            points = np.int32([mask])
+            cv2.fillPoly(mask_image, points, color=(255, 255, 255))
+            save_mask(uuid_, mask_image)
 
             objects.append(
                 {
@@ -101,6 +117,7 @@ def test():
     init_image = load_image(
         "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/inpaint.png"
     )
+
     mask_image = load_image(
         "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/road-mask.png"
     )
