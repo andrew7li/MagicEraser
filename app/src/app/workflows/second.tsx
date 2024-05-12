@@ -1,5 +1,16 @@
-import React from "react";
+import styles from "./second.module.scss";
 
-export default function Second() {
-  return <div>second</div>;
+type SecondProps = {
+  setWorkflow: (newWorkflow: number) => void;
+  file: File;
+};
+
+export default function Second(props: SecondProps) {
+  const { setWorkflow, file } = props;
+  return (
+    <>
+      <div className={styles.leftContainer}>Fill me in!</div>
+      <div className={styles.rightContainer}>Fill me!</div>
+    </>
+  );
 }

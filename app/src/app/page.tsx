@@ -84,7 +84,7 @@ export default function Home() {
         {workflow === 0 ? (
           <First setWorkflow={setWorkflow} setFile={setFile} />
         ) : workflow === 1 ? (
-          <Second />
+          <Second setWorkflow={setWorkflow} file={file} />
         ) : workflow === 2 ? (
           <Third />
         ) : null}
