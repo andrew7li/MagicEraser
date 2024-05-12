@@ -10,6 +10,9 @@ type FirstProps = {
 export default function First(props: FirstProps) {
   const { setWorkflow, setFile } = props;
 
+  /**
+   * Function to handle file upload.
+   */
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
@@ -19,7 +22,7 @@ export default function First(props: FirstProps) {
   };
 
   return (
-    <div className={styles.imageContainer}>
+    <>
       <div className={styles.imageDemoContainer}>
         <video autoPlay muted loop preload="none">
           <source src="/2160p.MOV" type="video/mp4" />
@@ -36,9 +39,9 @@ export default function First(props: FirstProps) {
         <input
           type="file"
           id="inputFile"
-          style={{ display: "none" }} // Hide the input but keep it functional
+          style={{ display: "none" }}
           accept="image/jpeg, image/png, image/webp, image/bmp" // Specify accepted file types
-          onChange={handleFileUpload} // Implement a function to handle file uploads
+          onChange={handleFileUpload}
         />
         <div className={styles.uploadImageDragAndDropContainer}>
           <label htmlFor="inputFile" className={styles.uploadImageTextLabel}>
@@ -84,6 +87,6 @@ export default function First(props: FirstProps) {
           </ul>
         </div>
       </div>
-    </div>
+    </>
   );
 }

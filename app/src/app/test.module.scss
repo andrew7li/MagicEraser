@@ -43,6 +43,13 @@ $font-size-quaternary: 0.75rem;
     }
   }
 
+  .middleContainer {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    height: 400px;
+  }
+
   .descriptionContainer {
     margin-top: 3.5rem;
 
