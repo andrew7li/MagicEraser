@@ -3,3 +3,11 @@ yolov8m-seg.pt
 yolov8n-seg.pt
 venv/
 .idea/
+.env/
+__pycache__/
+outputs/
+backend/*.jpg
+backend/*.png
+backend/*.webp
+backend/*.jpeg
+backend/*.bmp
