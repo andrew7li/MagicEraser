@@ -84,7 +84,7 @@ def get_image_segments(body: ImageSegmentRequestBody):
 
             objects.append(
                 {
-                    "uuid": str(uuid.uuid4()),
+                    "uuid": uuid_,
                     "objectType": object_name,
                     "topLeft": {
                         "x": min_x,
