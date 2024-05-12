@@ -1,96 +1,94 @@
 "use client";
 import styles from "./test.module.scss";
 
-import { UploadDropzone } from "./../utils/uploadthing";
 import TopNav from "./TopNav";
 
+import axios from "axios";
+import Resizer from "react-image-file-resizer";
+
+import { useState } from "react";
+import First from "./workflows/first";
+import Second from "./workflows/second";
+import Third from "./workflows/third";
+
 export default function Home() {
+  const [file, setFile] = useState<File>();
+  const [workflow, setWorkflow] = useState(0);
+
+  const callImageSegmentsAPI = (url: string) => {
+    axios
+      .post("http://localhost:8000/getImageSegments", {
+        url: url,
+      })
+      .then(
+        (response) => {
+          console.log(response);
+        },
+        (error) => {
+          console.log(error);
+        }
+      );
+  };
+
+  const resizeFile = (file: File): Promise<File> =>
+    new Promise((resolve, reject) => {
+      Resizer.imageFileResizer(
+        file,
+        512,
+        512,
+        "JPEG",
+        100,
+        0,
+        (uri) => {
+          if (typeof uri === "string") {
+            // Convert base64 string to Blob
+            const blob = base64ToBlob(uri, "image/jpeg");
+            // Create a new File from the Blob
+            const newFile = new File([blob], "resized-" + file.name, {
+              type: "image/jpeg",
+            });
+            resolve(newFile);
+          } else {
+            reject(new Error("URI is not in the expected string format"));
+          }
+        },
+        "base64",
+        512,
+        512
+      );
+    });
+
+  /**
+   * Helper function to convert base64 to Blob
+   */
+  function base64ToBlob(base64: string, mimeType: string) {
+    const byteString = atob(base64.split(",")[1]);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeType });
+  }
+
+  console.log(file);
+
   return (
     <div className={styles.body}>
-      <TopNav />
+      <TopNav setWorkflow={setWorkflow} />
       <div className={styles.headerContainer}>
         <p className={styles.headerText}>
           remove objects with <span>magic eraser</span>
         </p>
       </div>
-      <div className={styles.imageContainer}>
-        <div className={styles.imageDemoContainer}>
-          <img src="/IMG_8916.jpeg" alt="Demo of Magic Eraser" />
-        </div>
-        <div className={styles.imageUploadContainer}>
-          <input
-            type="file"
-            id="inputFile"
-            style={{ display: "none" }} // Hide the input but keep it functional
-            accept="image/jpeg, image/png, image/webp, image/bmp" // Specify accepted file types
-            multiple // Allow multiple file uploads if necessary
-            // onChange={handleFileUpload} // Implement a function to handle file uploads
-          />
-          <div className={styles.uploadImageDragAndDropContainer}>
-            <UploadDropzone
-              className={styles.uploadButton2}
-              endpoint="imageUploader"
-              appearance={{
-                button: {
-                  background: "rgba(129, 0, 165, 0.2)",
-                  margin: "auto",
-                  borderRadius: "1rem",
-                  height: "3.5rem",
-                  border: "none",
-                  color: "#000000",
-                  fontSize: "20px",
-                  letterSpacing: "0.5px",
-                  fontWeight: "700",
-                  display: "flex",
-                  position: "relative",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  width: "90%",
-                  padding: "10px",
-                  textTransform: "lowercase",
-                },
-                container: {
-                  width: "90%",
-                  cursor: "pointer",
-                },
-              }}
-              onClientUploadComplete={(res) => {
-                // Do something with the response
-                console.log("Files: ", res);
-                alert("Upload Completed");
-              }}
-              onUploadError={(error: Error) => {
-                // Do something with the error.
-                alert(`ERROR! ${error.message}`);
-              }}
-            />
-          </div>
 
-          <div className={styles.sampleImagesContainer}>
-            <p>Try one of these now!</p>
-            <ul>
-              <li>
-                <img src="/IMG_8916.jpeg" alt="Demo of Magic Eraser" />{" "}
-              </li>
-              <li>
-                <img src="/IMG_8916.jpeg" alt="Demo of Magic Eraser" />{" "}
-              </li>
-              <li>
-                <img src="/IMG_8916.jpeg" alt="Demo of Magic Eraser" />{" "}
-              </li>
-              <li>
-                <img src="/IMG_8916.jpeg" alt="Demo of Magic Eraser" />{" "}
-              </li>
-              <li>
-                <img src="/IMG_8916.jpeg" alt="Demo of Magic Eraser" />{" "}
-              </li>
-              <li>
-                <img src="/IMG_8916.jpeg" alt="Demo of Magic Eraser" />{" "}
-              </li>
-            </ul>
-          </div>
-        </div>
+      {/* Middle content */}
+      <div>
+        {workflow == 0 && <First setWorkflow={setWorkflow} setFile={setFile} />}
+        {workflow == 1 && <Second />}
+        {workflow == 2 && <Third />}
       </div>
+
       <div className={styles.descriptionContainer}>
         <strong>Instantly modify your images to create a visual impact</strong>
         <br />

@@ -21,12 +21,12 @@
   align-items: center;
 
   background: linear-gradient(rgba(129, 0, 165, 0.8), rgba(129, 10, 165, 0.3));
-  // background: black;
   font-weight: 500;
   font-size: 1.2rem;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  cursor: pointer;
 }
 
 .logo {

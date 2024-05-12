@@ -3,10 +3,16 @@ import styles from "./topnav.module.scss";
 import { IoLogoGithub } from "react-icons/io";
 import "@uploadthing/react/styles.css";
 
-export default function TopNav() {
+type TopNavProps = {
+  setWorkflow: (newWorkflow: number) => void;
+};
+
+export default function TopNav(props: TopNavProps) {
+  const { setWorkflow } = props;
+
   return (
     <div className={styles.topNavigation}>
-      <div className={styles.logoContainer}>
+      <div className={styles.logoContainer} onClick={() => setWorkflow(0)}>
         <img src="logo-transparent.png" className={styles.logo} />
         Magic Eraser
       </div>
