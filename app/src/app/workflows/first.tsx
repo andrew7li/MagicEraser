@@ -21,7 +21,16 @@ export default function First(props: FirstProps) {
   return (
     <div className={styles.imageContainer}>
       <div className={styles.imageDemoContainer}>
-        <img src="/IMG_8916.jpeg" alt="Demo of Magic Eraser" />
+        <video autoPlay muted loop preload="none">
+          <source src="/2160p.MOV" type="video/mp4" />
+          <track
+            src="/path/to/captions.vtt"
+            kind="subtitles"
+            srcLang="en"
+            label="English"
+          />
+          Your browser does not support the video tag.
+        </video>
       </div>
       <div className={styles.imageUploadContainer}>
         <input
