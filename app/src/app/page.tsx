@@ -12,7 +12,7 @@ import Second from "./workflows/second";
 import Third from "./workflows/third";
 
 export default function Home() {
-  const [file, setFile] = useState<File>();
+  const [file, setFile] = useState<File | null>();
   const [workflow, setWorkflow] = useState(0);
 
   const callImageSegmentsAPI = (url: string) => {
@@ -71,11 +71,9 @@ export default function Home() {
     return new Blob([ab], { type: mimeType });
   }
 
-  console.log(file);
-
   return (
     <div className={styles.body}>
-      <TopNav setWorkflow={setWorkflow} />
+      <TopNav setWorkflow={setWorkflow} setFile={setFile} />
       <div className={styles.headerContainer}>
         <p className={styles.headerText}>
           remove objects with <span>magic eraser</span>

@@ -4,7 +4,7 @@ import { RiUploadLine } from "react-icons/ri";
 
 type FirstProps = {
   setWorkflow: (newWorkflow: number) => void;
-  setFile: (file: File) => void;
+  setFile: (file: File | null) => void;
 };
 
 export default function First(props: FirstProps) {

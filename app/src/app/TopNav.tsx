@@ -5,14 +5,20 @@ import "@uploadthing/react/styles.css";
 
 type TopNavProps = {
   setWorkflow: (newWorkflow: number) => void;
+  setFile: (file: File | null) => void;
 };
 
 export default function TopNav(props: TopNavProps) {
-  const { setWorkflow } = props;
+  const { setWorkflow, setFile } = props;
+
+  const handleLogoContainerClick = () => {
+    setWorkflow(0);
+    setFile(null);
+  };
 
   return (
     <div className={styles.topNavigation}>
-      <div className={styles.logoContainer} onClick={() => setWorkflow(0)}>
+      <div className={styles.logoContainer} onClick={handleLogoContainerClick}>
         <img src="logo-transparent.png" className={styles.logo} />
         Magic Eraser
       </div>
