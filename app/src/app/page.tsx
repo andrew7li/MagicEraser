@@ -80,11 +80,14 @@ export default function Home() {
         </p>
       </div>
 
-      {/* Middle content */}
-      <div>
-        {workflow == 0 && <First setWorkflow={setWorkflow} setFile={setFile} />}
-        {workflow == 1 && <Second />}
-        {workflow == 2 && <Third />}
+      <div className={styles.middleContainer}>
+        {workflow === 0 ? (
+          <First setWorkflow={setWorkflow} setFile={setFile} />
+        ) : workflow === 1 ? (
+          <Second />
+        ) : workflow === 2 ? (
+          <Third />
+        ) : null}
       </div>
 
       <div className={styles.descriptionContainer}>
