@@ -2,6 +2,8 @@ import os
 import cv2
 import uuid
 import torch
+import base64
+import tempfile
 import numpy as np
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -44,8 +46,8 @@ class ImageSegmentRequestBody(BaseModel):
 
 class InpaintRequestBody(BaseModel):
     url: str
-    prompt: str
     uuid: str
+    prompt: str
 
 
 @app.get("/")
@@ -59,6 +61,7 @@ def get_image_segments(body: ImageSegmentRequestBody):
     # TODO verify the URL is actually a valid image URL
     if not body.url.startswith("https://"):
         raise HTTPException(400, 'URL should begin with "https://"')
+
 
     try:
         results = yolo_model.predict(body.url, conf=YOLO_CONF_THRESHOLD)
@@ -109,17 +112,19 @@ def get_image_segments(body: ImageSegmentRequestBody):
 
 @app.post("/inpaintImage")
 async def inpaint(body: InpaintRequestBody):
-    # TODO verify image URL and mask path
     init_image = load_image(body.url)
-    mask_image = load_image(os.path.join(MASK_DATA_DIRECTORY, f'{body.uuid}.png'))
+    mask_image = load_image(os.path.join(MASK_DATA_DIRECTORY, f"{body.uuid}.png"))
 
     image = inpaint_pipeline(
-        prompt=body.prompt, image=init_image, mask_image=mask_image
+        prompt="road", image=init_image, mask_image=mask_image
     ).images[0]
+    path = tempfile.mktemp(".png")
 
-    # FIXME instead of saving image locally, upload it somewhere and return the link
-    image.save("/home/abhyudaya/MagicEraser/outputs/output1.png")
+    image.save(path)
+    with open(path, 'rb') as f:
+        bytes = f.read()
+        b64 = base64.b64encode(bytes)
 
-    return {  # FIXME
-        "url": "https://scholar.googleusercontent.com/citations?view_op=medium_photo&user=qIvZT74AAAAJ&citpid=7",
+    return {
+        "url": f"data:application/png;base64,{b64.decode('utf-8')}",
     }
