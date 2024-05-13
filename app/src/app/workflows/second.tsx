@@ -1,12 +1,13 @@
 import styles from "./second.module.scss";
 
+import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import Cropper from "react-easy-crop";
-import getCroppedImg from "../../utils/cropImage";
-
 import { ImageSegmentAPIResponse } from "~/types/ISegment";
 import { useUploadThing } from "~/utils/uploadthing";
+import getCroppedImg from "../../utils/cropImage";
 
 type SecondProps = {
   setWorkflow: (newWorkflow: number) => void;
@@ -28,10 +29,8 @@ export default function Second(props: SecondProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area>();
-  const [croppedImage, setCroppedImage] = useState<string | null>();
-  const [rotation, setRotation] = useState(0);
-  const [showCroppedImage, setShowCroppedImage] = useState(false);
-  const [fileUrl, setFileUrl] = useState<string>();
+  const [rotation, _] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Function to handle when the file is set or changed
   useEffect(() => {
@@ -48,7 +47,8 @@ export default function Second(props: SecondProps) {
   const { startUpload, permittedFileInfo } = useUploadThing("imageUploader", {
     onClientUploadComplete: (uploadResponse) => {
       console.log("Uploaded successfully to UploadThing!", uploadResponse);
-      setFileUrl(uploadResponse[0].url);
+      console.log("UploadThing's URL", uploadResponse[0].url);
+      callImageSegmentsAPI(uploadResponse[0].url);
     },
     onUploadError: () => {
       alert("error occurred while uploading");
@@ -70,10 +70,12 @@ export default function Second(props: SecondProps) {
         (response) => {
           console.log(response);
           setSegmentationData(response.data);
+          setIsUploading(false);
           setWorkflow(2);
         },
         (error) => {
           console.log(error);
+          setIsUploading(false);
         }
       );
   };
@@ -83,6 +85,7 @@ export default function Second(props: SecondProps) {
   };
 
   const handleGetSegmentButtonClick = async () => {
+    setIsUploading(true);
     try {
       const croppedImage = await getCroppedImg(
         imageSrc,
@@ -90,7 +93,6 @@ export default function Second(props: SecondProps) {
         rotation
       );
       console.log("Successfully cropped!", { croppedImage });
-      setCroppedImage(croppedImage);
 
       // Fetch the blob from the local blob URL
       fetch(croppedImage!)
@@ -103,14 +105,14 @@ export default function Second(props: SecondProps) {
 
           // Upload the file
           await startUpload([file]);
-          console.log("Upload thing file URL", fileUrl);
-          callImageSegmentsAPI(fileUrl!);
         })
-        .catch((error) =>
-          console.error("Failed to fetch blob from URL:", error)
-        );
+        .catch((error) => {
+          console.error("Failed to fetch blob from URL:", error);
+          setIsUploading(false);
+        });
     } catch (e) {
       console.error(e);
+      setIsUploading(false);
     }
   };
 
@@ -118,6 +120,24 @@ export default function Second(props: SecondProps) {
     <div>Error! No file found!</div>
   ) : (
     <>
+      {isUploading && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: "0",
+            left: "0",
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0, 0, 0, 0.4)",
+            zIndex: "1000",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      )}
       <div className={styles.leftContainer}>
         <Cropper
           image={imageSrc}
