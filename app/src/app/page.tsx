@@ -11,10 +11,13 @@ import Second from "./workflows/second";
 import Third from "./workflows/third";
 
 import { IoArrowBackOutline } from "react-icons/io5";
+import { ImageSegmentAPIResponse } from "~/types/ISegment";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>();
   const [workflow, setWorkflow] = useState(2);
+  const [segmentationData, setSegmentationData] =
+    useState<ImageSegmentAPIResponse>();
 
   const resizeFile = (file: File): Promise<File> =>
     new Promise((resolve, reject) => {
@@ -57,6 +60,7 @@ export default function Home() {
     return new Blob([ab], { type: mimeType });
   }
 
+  console.log(segmentationData);
   return (
     <div className={styles.body}>
       <TopNav setWorkflow={setWorkflow} setFile={setFile} />
@@ -78,7 +82,11 @@ export default function Home() {
         {workflow === 0 ? (
           <First setWorkflow={setWorkflow} setFile={setFile} />
         ) : workflow === 1 ? (
-          <Second setWorkflow={setWorkflow} file={file} />
+          <Second
+            setWorkflow={setWorkflow}
+            file={file}
+            setSegmentationData={setSegmentationData}
+          />
         ) : workflow === 2 ? (
           <Third />
         ) : null}

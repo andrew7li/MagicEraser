@@ -1,16 +1,17 @@
 import styles from "./second.module.scss";
 
-import Button from "@mui/material/Button";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import Cropper from "react-easy-crop";
 import getCroppedImg from "../../utils/cropImage";
 
+import { ImageSegmentAPIResponse } from "~/types/ISegment";
 import { useUploadThing } from "~/utils/uploadthing";
 
 type SecondProps = {
   setWorkflow: (newWorkflow: number) => void;
   file: File | null | undefined;
+  setSegmentationData: (response: ImageSegmentAPIResponse) => void;
 };
 
 type Area = {
@@ -21,7 +22,7 @@ type Area = {
 };
 
 export default function Second(props: SecondProps) {
-  const { setWorkflow, file } = props;
+  const { setWorkflow, file, setSegmentationData } = props;
 
   const [imageSrc, setImageSrc] = useState("");
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -30,13 +31,13 @@ export default function Second(props: SecondProps) {
   const [croppedImage, setCroppedImage] = useState<string | null>();
   const [rotation, setRotation] = useState(0);
   const [showCroppedImage, setShowCroppedImage] = useState(false);
+  const [fileUrl, setFileUrl] = useState<string>();
 
   // Function to handle when the file is set or changed
   useEffect(() => {
     if (file) {
       const fileUrl = URL.createObjectURL(file);
       setImageSrc(fileUrl);
-
       // Cleanup the URL when the component unmounts or file changes
       return () => {
         URL.revokeObjectURL(fileUrl);
@@ -45,21 +46,22 @@ export default function Second(props: SecondProps) {
   }, [file]);
 
   const { startUpload, permittedFileInfo } = useUploadThing("imageUploader", {
-    onClientUploadComplete: () => {
-      // alert("uploaded successfully!");
+    onClientUploadComplete: (uploadResponse) => {
+      console.log("Uploaded successfully to UploadThing!", uploadResponse);
+      setFileUrl(uploadResponse[0].url);
     },
     onUploadError: () => {
-      // alert("error occurred while uploading");
+      alert("error occurred while uploading");
     },
     onUploadBegin: () => {
-      // alert("upload has begun");
+      // NOTE: See if backend needs the image to be 512 x 512
     },
   });
 
   const callImageSegmentsAPI = (url: string) => {
     axios
       .post(
-        "https://fur-mitsubishi-guru-generated.trycloudflare.com/getImageSegments",
+        "https://floating-likely-dover-windows.trycloudflare.com/getImageSegments",
         {
           url: url,
         }
@@ -67,6 +69,8 @@ export default function Second(props: SecondProps) {
       .then(
         (response) => {
           console.log(response);
+          setSegmentationData(response.data);
+          setWorkflow(2);
         },
         (error) => {
           console.log(error);
@@ -79,7 +83,6 @@ export default function Second(props: SecondProps) {
   };
 
   const handleGetSegmentButtonClick = async () => {
-    // setShowCroppedImage(true);
     try {
       const croppedImage = await getCroppedImg(
         imageSrc,
@@ -92,20 +95,20 @@ export default function Second(props: SecondProps) {
       // Fetch the blob from the local blob URL
       fetch(croppedImage!)
         .then((response) => response.blob())
-        .then((blob) => {
+        .then(async (blob) => {
           // Now that you have the blob, create a File object
           const file = new File([blob], "cropped-image.jpeg", {
             type: "image/jpeg",
           });
 
           // Upload the file
-          startUpload([file]);
+          await startUpload([file]);
+          console.log("Upload thing file URL", fileUrl);
+          callImageSegmentsAPI(fileUrl!);
         })
         .catch((error) =>
           console.error("Failed to fetch blob from URL:", error)
         );
-
-      // callImageSegmentsAPI(croppedImage!);
     } catch (e) {
       console.error(e);
     }
