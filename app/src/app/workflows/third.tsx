@@ -6,7 +6,7 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import axios from "axios";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { ImageSegmentAPIResponse } from "~/types/ISegment";
 import styles from "./third.module.scss";
 
@@ -17,6 +17,9 @@ type ThirdProps = {
   setFinalOutputUrl: (finalOutputUrl: string) => void;
 };
 
+/**
+ * MUI Theme to be consistent with the app's primary purple color.
+ */
 const theme = createTheme({
   palette: {
     primary: {
@@ -28,9 +31,17 @@ const theme = createTheme({
 export default function Third(props: ThirdProps) {
   const { segmentationData, uploadThingUrl, setWorkflow, setFinalOutputUrl } =
     props;
+  const [objectIdx, setObjectIdx] = useState<number>();
   const [uuid, setUuid] = useState<string>("");
   const [prompt, setPrompt] = useState<string>("");
   const [isInpainting, setIsInpainting] = useState(false);
+
+  useEffect(() => {
+    if (!segmentationData || !objectIdx) {
+      return;
+    }
+    console.log(segmentationData.objects[objectIdx]);
+  }, [objectIdx, segmentationData]);
 
   /**
    * Handler function for when the prompt changes.
@@ -43,9 +54,14 @@ export default function Third(props: ThirdProps) {
    * Handler function for when the segment object changes.
    */
   const handleSegmentObjectChange = (event: SelectChangeEvent) => {
-    setUuid(event.target.value as string);
+    const idx = Number(event.target.value);
+    setObjectIdx(idx);
+    setUuid(segmentationData!.objects[idx].uuid as string);
   };
 
+  /**
+   * Handler function for getting the output when the output button is clicked.
+   */
   const handleGetOutputButtonClick = async () => {
     if (!prompt || !uuid) {
       alert("Prompt or UUID cannot be empty!");
@@ -124,7 +140,7 @@ export default function Third(props: ThirdProps) {
               <Select
                 labelId="select-label"
                 id="simple-select"
-                value={uuid}
+                value={String(objectIdx)}
                 label="Segment"
                 onChange={handleSegmentObjectChange}
                 sx={{
@@ -136,7 +152,7 @@ export default function Third(props: ThirdProps) {
                     sx: {
                       bgcolor: "rgb(252, 243, 255)",
                       border: "4px solid rgba(91, 0, 119, 0.425)",
-                      borderRadius: "15px",
+                      borderRadius: "10px",
                       "& .MuiMenuItem-root": {
                         padding: "10px 15px",
                       },
@@ -144,8 +160,8 @@ export default function Third(props: ThirdProps) {
                   },
                 }}
               >
-                {segmentationData.objects.map((element) => (
-                  <MenuItem key={element.uuid} value={element.uuid}>
+                {segmentationData.objects.map((element, idx) => (
+                  <MenuItem key={element.uuid} value={idx}>
                     {element.objectType}
                   </MenuItem>
                 ))}
