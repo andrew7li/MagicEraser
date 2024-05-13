@@ -3,7 +3,6 @@ import styles from "./test.module.scss";
 
 import TopNav from "./TopNav";
 
-import axios from "axios";
 import Resizer from "react-image-file-resizer";
 
 import { useState } from "react";
@@ -11,24 +10,11 @@ import First from "./workflows/first";
 import Second from "./workflows/second";
 import Third from "./workflows/third";
 
+import { IoArrowBackOutline } from "react-icons/io5";
+
 export default function Home() {
   const [file, setFile] = useState<File | null>();
-  const [workflow, setWorkflow] = useState(0);
-
-  const callImageSegmentsAPI = (url: string) => {
-    axios
-      .post("http://localhost:8000/getImageSegments", {
-        url: url,
-      })
-      .then(
-        (response) => {
-          console.log(response);
-        },
-        (error) => {
-          console.log(error);
-        }
-      );
-  };
+  const [workflow, setWorkflow] = useState(2);
 
   const resizeFile = (file: File): Promise<File> =>
     new Promise((resolve, reject) => {
@@ -81,6 +67,14 @@ export default function Home() {
       </div>
 
       <div className={styles.middleContainer}>
+        {workflow !== 0 && (
+          <IoArrowBackOutline
+            onClick={() => {
+              setWorkflow(workflow - 1);
+            }}
+            className={styles.backArrow}
+          />
+        )}
         {workflow === 0 ? (
           <First setWorkflow={setWorkflow} setFile={setFile} />
         ) : workflow === 1 ? (
