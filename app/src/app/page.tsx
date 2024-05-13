@@ -61,7 +61,6 @@ export default function Home() {
     return new Blob([ab], { type: mimeType });
   }
 
-  console.log(segmentationData);
   return (
     <div className={styles.body}>
       <TopNav setWorkflow={setWorkflow} setFile={setFile} />

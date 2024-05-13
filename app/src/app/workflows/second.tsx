@@ -101,12 +101,12 @@ export default function Second(props: SecondProps) {
         .then((response) => response.blob())
         .then(async (blob) => {
           // Now that you have the blob, create a File object
-          const file = new File([blob], "cropped-image.jpeg", {
+          const newFile = new File([blob], file!.name, {
             type: "image/jpeg",
           });
 
           // Upload the file
-          await startUpload([file]);
+          await startUpload([newFile]);
         })
         .catch((error) => {
           console.error("Failed to fetch blob from URL:", error);
