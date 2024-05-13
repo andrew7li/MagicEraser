@@ -2,7 +2,7 @@ export type ImageSegmentAPIResponse = {
   objects: SegmentObject[];
 };
 
-type SegmentObject = {
+export type SegmentObject = {
   uuid: string;
   objectType: string;
   topLeft: {

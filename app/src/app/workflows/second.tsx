@@ -176,24 +176,6 @@ export default function Second(props: SecondProps) {
     <div>Error! No file found!</div>
   ) : (
     <>
-      {isUploading && (
-        <Box
-          sx={{
-            position: "absolute",
-            top: "0",
-            left: "0",
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0, 0, 0, 0.4)",
-            zIndex: "1000",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <CircularProgress />
-        </Box>
-      )}
       <div className={styles.leftContainer}>
         <Cropper
           image={imageSrc}
@@ -215,6 +197,25 @@ export default function Second(props: SecondProps) {
           onClick={handleGetSegmentButtonClick}
         >
           Get Image Segments
+          {isUploading && (
+            <Box
+              sx={{
+                borderRadius: "1rem",
+                position: "absolute",
+                top: "0",
+                left: "0",
+                width: "100%",
+                height: "100%",
+                backgroundColor: "rgba(35, 1, 45, 0.8)",
+                zIndex: "1000",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <CircularProgress sx={{ color: "#D04D76" }} />
+            </Box>
+          )}
         </div>
       </div>
     </>

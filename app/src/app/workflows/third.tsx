@@ -1,3 +1,11 @@
+import axios from "axios";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
+
+import styles from "./third.module.scss";
+
+import { ImageSegmentAPIResponse } from "~/types/ISegment";
+import Canvas from "../components/canvas";
+
 import { TextField, ThemeProvider, createTheme } from "@mui/material";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -5,10 +13,6 @@ import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
-import axios from "axios";
-import { ChangeEvent, useEffect, useState } from "react";
-import { ImageSegmentAPIResponse } from "~/types/ISegment";
-import styles from "./third.module.scss";
 
 type ThirdProps = {
   segmentationData: ImageSegmentAPIResponse | undefined;
@@ -31,7 +35,7 @@ const theme = createTheme({
 export default function Third(props: ThirdProps) {
   const { segmentationData, uploadThingUrl, setWorkflow, setFinalOutputUrl } =
     props;
-  const [objectIdx, setObjectIdx] = useState<number>();
+  const [objectIdx, setObjectIdx] = useState<string>("");
   const [uuid, setUuid] = useState<string>("");
   const [prompt, setPrompt] = useState<string>("");
   const [isInpainting, setIsInpainting] = useState(false);
@@ -40,7 +44,7 @@ export default function Third(props: ThirdProps) {
     if (!segmentationData || !objectIdx) {
       return;
     }
-    console.log(segmentationData.objects[objectIdx]);
+    console.log(segmentationData.objects[Number(objectIdx)]);
   }, [objectIdx, segmentationData]);
 
   /**
@@ -54,9 +58,9 @@ export default function Third(props: ThirdProps) {
    * Handler function for when the segment object changes.
    */
   const handleSegmentObjectChange = (event: SelectChangeEvent) => {
-    const idx = Number(event.target.value);
+    const idx = event.target.value;
     setObjectIdx(idx);
-    setUuid(segmentationData!.objects[idx].uuid as string);
+    setUuid(segmentationData!.objects[Number(idx)].uuid as string);
   };
 
   /**
@@ -92,26 +96,11 @@ export default function Third(props: ThirdProps) {
     <div>Error! No data found!</div>
   ) : (
     <>
-      {isInpainting && (
-        <Box
-          sx={{
-            position: "absolute",
-            top: "0",
-            left: "0",
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0, 0, 0, 0.4)",
-            zIndex: "1000",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <CircularProgress />
-        </Box>
-      )}
       <div className={styles.leftContainer}>
-        <img src={uploadThingUrl} />
+        <Canvas
+          segmentationObject={segmentationData.objects[Number(objectIdx)]}
+          uploadThingUrl={uploadThingUrl}
+        />
       </div>
       <div className={styles.rightContainer}>
         <div
@@ -205,6 +194,25 @@ export default function Third(props: ThirdProps) {
           onClick={handleGetOutputButtonClick}
         >
           Get output
+          {isInpainting && (
+            <Box
+              sx={{
+                borderRadius: "1rem",
+                position: "absolute",
+                top: "0",
+                left: "0",
+                width: "100%",
+                height: "100%",
+                backgroundColor: "rgba(35, 1, 45, 0.8)",
+                zIndex: "1000",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <CircularProgress sx={{ color: "#D04D76" }} />
+            </Box>
+          )}
         </div>
       </div>
     </>

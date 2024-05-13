@@ -4,7 +4,7 @@ import { saveAs } from "file-saver";
 type FourthProps = {
   finalOutputUrl: string | undefined;
   setWorkflow: (newWorkflow: number) => void;
-  fileName: string;
+  fileName: string | undefined;
 };
 
 export default function Fourth(props: FourthProps) {
@@ -14,7 +14,12 @@ export default function Fourth(props: FourthProps) {
    * Handler for when download button is clicked.
    */
   const handleDownloadButtonClick = () => {
-    saveAs(finalOutputUrl, fileName);
+    if (!finalOutputUrl) {
+      console.error("Final output URL not defined", finalOutputUrl);
+      return;
+    }
+    const newFileName = fileName ?? "dummy-name.jpeg";
+    saveAs(finalOutputUrl, newFileName);
   };
 
   /**
@@ -32,7 +37,10 @@ export default function Fourth(props: FourthProps) {
         <img src={finalOutputUrl} />
       </div>
       <div className={styles.rightContainer}>
-        <p>Thanks for using Magic Eraser! Download image here.</p>
+        <p>
+          Thanks for using Magic Eraser! Feel free to download the image or
+          upload a new image!
+        </p>
         <div id={styles.button} onClick={handleDownloadButtonClick}>
           Download
         </div>
