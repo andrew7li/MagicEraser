@@ -1,3 +1,16 @@
+$primary-color: #6729f3;
+$secondary-color: #fbfbfb;
+$tertiary-color: #777777;
+
+$text-primary: #cdabec;
+$text-secondary: #000000;
+$text-tertiary: #777777;
+
+$font-size-primary: 2.5rem;
+$font-size-secondary: 2rem;
+$font-size-tertiary: 1rem;
+$font-size-quaternary: 0.75rem;
+
 .leftContainer {
   border-radius: 1.5rem;
   width: 40%;
@@ -5,6 +18,7 @@
   box-shadow: rgba(0, 0, 0, 0.07) 0px 1px 2px, rgba(0, 0, 0, 0.07) 0px 2px 4px,
     rgba(0, 0, 0, 0.07) 0px 4px 8px, rgba(0, 0, 0, 0.07) 0px 8px 16px,
     rgba(0, 0, 0, 0.07) 0px 16px 32px, rgba(0, 0, 0, 0.07) 0px 32px 64px;
+  position: relative;
 
   img {
     border-radius: 1.5rem;
@@ -30,7 +44,15 @@
     rgba(0, 0, 0, 0.07) 0px 4px 8px, rgba(0, 0, 0, 0.07) 0px 8px 16px,
     rgba(0, 0, 0, 0.07) 0px 16px 32px, rgba(0, 0, 0, 0.07) 0px 32px 64px;
 
-  .getOutputButton {
+  p {
+    color: $text-tertiary;
+    text-align: center;
+    font-size: $font-size-tertiary;
+    margin-top: 0.5rem;
+    width: 90%;
+  }
+
+  #button {
     background: rgba(129, 0, 165, 0.2);
     cursor: pointer;
     border-radius: 1rem;
@@ -48,7 +70,7 @@
     padding: 10px;
   }
 
-  .getOutputButton:hover {
+  #button:hover {
     background: rgba(129, 0, 165, 0.4);
     color: #ffffff;
   }

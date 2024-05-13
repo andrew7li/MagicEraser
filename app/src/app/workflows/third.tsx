@@ -1,152 +1,195 @@
-import styles from "./third.module.scss";
+import { TextField, ThemeProvider, createTheme } from "@mui/material";
 import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
+import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
-import { useState } from "react";
+import axios from "axios";
+import { ChangeEvent, useState } from "react";
 import { ImageSegmentAPIResponse } from "~/types/ISegment";
-
-const mockData = {
-  objects: [
-    {
-      uuid: "a6c7a62c-7618-4c1d-a6b8-13d984ddc142",
-      objectType: "bicycle",
-      topLeft: {
-        x: 1500,
-        y: 681,
-      },
-      topRight: {
-        x: 1585,
-        y: 681,
-      },
-      bottomRight: {
-        x: 1585,
-        y: 681,
-      },
-      bottomLeft: {
-        x: 1500,
-        y: 681,
-      },
-    },
-    {
-      uuid: "043f9838-564e-4495-881b-d1fca9a8fefb",
-      objectType: "bicycle",
-      topLeft: {
-        x: 1380,
-        y: 681,
-      },
-      topRight: {
-        x: 1442,
-        y: 681,
-      },
-      bottomRight: {
-        x: 1442,
-        y: 681,
-      },
-      bottomLeft: {
-        x: 1380,
-        y: 681,
-      },
-    },
-    {
-      uuid: "fa55792b-eb47-44a7-a871-be27fc6d83b5",
-      objectType: "potted plant",
-      topLeft: {
-        x: 1540,
-        y: 791,
-      },
-      topRight: {
-        x: 1597,
-        y: 791,
-      },
-      bottomRight: {
-        x: 1597,
-        y: 791,
-      },
-      bottomLeft: {
-        x: 1540,
-        y: 791,
-      },
-    },
-    {
-      uuid: "720007ba-557a-474e-ab8e-44a09e2a5917",
-      objectType: "bicycle",
-      topLeft: {
-        x: 390,
-        y: 673,
-      },
-      topRight: {
-        x: 505,
-        y: 673,
-      },
-      bottomRight: {
-        x: 505,
-        y: 673,
-      },
-      bottomLeft: {
-        x: 390,
-        y: 673,
-      },
-    },
-  ],
-};
+import styles from "./third.module.scss";
 
 type ThirdProps = {
   segmentationData: ImageSegmentAPIResponse | undefined;
-  uploadThingUrl: string;
+  uploadThingUrl: string | undefined;
+  setWorkflow: (newWorkflow: number) => void;
+  setFinalOutputUrl: (finalOutputUrl: string) => void;
 };
 
-export default function Third(props: ThirdProps) {
-  const { segmentationData, uploadThingUrl } = props;
-  const [object, setObject] = useState("");
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: "rgba(129, 0, 165, 0.4)",
+    },
+  },
+});
 
-  const handleChange = (event: SelectChangeEvent) => {
-    setObject(event.target.value as string);
+export default function Third(props: ThirdProps) {
+  const { segmentationData, uploadThingUrl, setWorkflow, setFinalOutputUrl } =
+    props;
+  const [uuid, setUuid] = useState<string>("");
+  const [prompt, setPrompt] = useState<string>("");
+  const [isInpainting, setIsInpainting] = useState(false);
+
+  /**
+   * Handler function for when the prompt changes.
+   */
+  const handlePromptChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setPrompt(event.target.value);
   };
 
-  return !segmentationData ? (
+  /**
+   * Handler function for when the segment object changes.
+   */
+  const handleSegmentObjectChange = (event: SelectChangeEvent) => {
+    setUuid(event.target.value as string);
+  };
+
+  const handleGetOutputButtonClick = async () => {
+    if (!prompt || !uuid) {
+      alert("Prompt or UUID cannot be empty!");
+      return;
+    }
+    setIsInpainting(true);
+    axios
+      .post(process.env.NEXT_PUBLIC_ENDPOINT + "/inpaintImage", {
+        url: uploadThingUrl,
+        uuid: uuid,
+        prompt: prompt,
+      })
+      .then(
+        (response) => {
+          console.log(response);
+          setFinalOutputUrl(response.data.url);
+          setWorkflow(3);
+          setIsInpainting(false);
+        },
+        (error) => {
+          console.log(error);
+          setIsInpainting(false);
+        }
+      );
+  };
+
+  return !segmentationData || !uploadThingUrl ? (
     <div>Error! No data found!</div>
   ) : (
     <>
+      {isInpainting && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: "0",
+            left: "0",
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0, 0, 0, 0.4)",
+            zIndex: "1000",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      )}
       <div className={styles.leftContainer}>
         <img src={uploadThingUrl} />
       </div>
       <div className={styles.rightContainer}>
-        <Box sx={{ minWidth: 120 }}>
-          <FormControl fullWidth>
-            <InputLabel id="select-label">-select-</InputLabel>
-            <Select
-              labelId="select-label"
-              id="simple-select"
-              value={object}
-              label="Object"
-              onChange={handleChange}
-              MenuProps={{
-                PaperProps: {
-                  sx: {
-                    bgcolor: "rgb(252, 243, 255)",
-                    width: 300,
-                    // border: "6px solid rgba(129, 0, 165, 0.3)",
-                    border: "4px solid rgba(91, 0, 119, 0.425)",
-                    borderRadius: "15px",
-                    "& .MuiMenuItem-root": {
-                      padding: 2,
-                    },
-                  },
+        <div
+          style={{
+            width: "90%",
+          }}
+        >
+          <ThemeProvider theme={theme}>
+            <FormControl
+              fullWidth
+              sx={{
+                "& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "rgba(129, 0, 165, 0.8) !important", // Normal state border color
                 },
+                "&:hover .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline":
+                  {
+                    borderColor: "rgba(129, 0, 165, 0.4) !important", // Hover state border color
+                  },
+                "&.Mui-focused .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline":
+                  {
+                    borderColor: "rgba(129, 0, 165, 0.5) !important", // Focus state border color
+                  },
               }}
             >
-              {segmentationData.objects.map((element) => (
-                <MenuItem value={element.uuid}>{element.objectType}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
-        {/* <div>Image Segments</div>
-        {mockData.objects.map((element) => (
-          <div key={element.uuid}>{element.objectType}</div>
-        ))} */}
+              <InputLabel id="select-label">Segment</InputLabel>
+              <Select
+                labelId="select-label"
+                id="simple-select"
+                value={uuid}
+                label="Segment"
+                onChange={handleSegmentObjectChange}
+                sx={{
+                  textAlign: "left",
+                  width: "100%",
+                }}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      bgcolor: "rgb(252, 243, 255)",
+                      border: "4px solid rgba(91, 0, 119, 0.425)",
+                      borderRadius: "15px",
+                      "& .MuiMenuItem-root": {
+                        padding: "10px 15px",
+                      },
+                    },
+                  },
+                }}
+              >
+                {segmentationData.objects.map((element) => (
+                  <MenuItem key={element.uuid} value={element.uuid}>
+                    {element.objectType}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </ThemeProvider>
+        </div>
+        <div
+          style={{
+            width: "100%",
+          }}
+        >
+          <ThemeProvider theme={theme}>
+            <TextField
+              id="outlined-textarea"
+              label="Prompt Magic Eraser"
+              placeholder="remove this object from the image and inpaint it naturally..."
+              multiline
+              rows={4}
+              sx={{
+                width: "90%",
+                "& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "rgba(129, 0, 165, 0.8)", // Normal state border color
+                },
+                "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline":
+                  {
+                    borderColor: "rgba(129, 0, 165, 0.4)", // Hover state border color
+                  },
+                "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                  {
+                    borderColor: "rgba(129, 0, 165, 0.5)", // Focus state border color
+                  },
+              }}
+              value={prompt}
+              onChange={handlePromptChange}
+            />
+          </ThemeProvider>
+        </div>
+        <div
+          className={styles.getOutputButton}
+          onClick={handleGetOutputButtonClick}
+        >
+          Get output
+        </div>
       </div>
     </>
   );

@@ -10,8 +10,8 @@ import { useUploadThing } from "~/utils/uploadthing";
 import getCroppedImg from "../../utils/cropImage";
 
 type SecondProps = {
-  setWorkflow: (newWorkflow: number) => void;
   file: File | null | undefined;
+  setWorkflow: (newWorkflow: number) => void;
   setSegmentationData: (response: ImageSegmentAPIResponse) => void;
   setUploadThingUrl: (uploadThingUrl: string) => void;
 };
@@ -62,12 +62,9 @@ export default function Second(props: SecondProps) {
 
   const callImageSegmentsAPI = (url: string) => {
     axios
-      .post(
-        "https://floating-likely-dover-windows.trycloudflare.com/getImageSegments",
-        {
-          url: url,
-        }
-      )
+      .post(process.env.NEXT_PUBLIC_ENDPOINT + "/getImageSegments", {
+        url: url,
+      })
       .then(
         (response) => {
           console.log(response);
