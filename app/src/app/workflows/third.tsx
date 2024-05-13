@@ -1,4 +1,10 @@
 import styles from "./second.module.scss";
+import Box from "@mui/material/Box";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import FormControl from "@mui/material/FormControl";
+import Select, { SelectChangeEvent } from "@mui/material/Select";
+import { useState } from "react";
 
 const mockData = {
   objects: [
@@ -86,14 +92,52 @@ const mockData = {
 };
 
 export default function Third() {
+  const [object, setObject] = useState("");
+
+  const handleChange = (event: SelectChangeEvent) => {
+    setObject(event.target.value as string);
+  };
+
   return (
     <>
       <div className={styles.leftContainer}>Fill me in!</div>
       <div className={styles.rightContainer}>
-        <div>Image Segments</div>
+        <Box sx={{ minWidth: 120 }}>
+          <FormControl fullWidth>
+            <InputLabel id="select-label">-select-</InputLabel>
+            <Select
+              labelId="select-label"
+              id="simple-select"
+              value={object}
+              label="Object"
+              onChange={handleChange}
+              MenuProps={{
+                PaperProps: {
+                  sx: {
+                    bgcolor: "rgb(252, 243, 255)",
+                    width: 300,
+                    // border: "6px solid rgba(129, 0, 165, 0.3)",
+                    border: "4px solid rgba(91, 0, 119, 0.425)",
+                    borderRadius: "15px",
+                    "& .MuiMenuItem-root": {
+                      padding: 2,
+                    },
+                  },
+                },
+              }}
+            >
+              {mockData.objects.map((element) => (
+                <MenuItem value={element.objectType}>
+                  {element.objectType}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+        {/* <div>Image Segments</div>
         {mockData.objects.map((element) => (
-          <div key={element.uuid}>hello</div>
-        ))}
+          <div key={element.uuid}>{element.objectType}</div>
+        ))} */}
       </div>
     </>
   );
