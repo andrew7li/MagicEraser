@@ -56,7 +56,11 @@ export default function Home() {
             setFinalOutputUrl={setFinalOutputUrl}
           />
         ) : workflow === 3 ? (
-          <Fourth finalOutputUrl={finalOutputUrl} setWorkflow={setWorkflow} />
+          <Fourth
+            finalOutputUrl={finalOutputUrl}
+            setWorkflow={setWorkflow}
+            fileName={file?.name}
+          />
         ) : null}
       </div>
 
