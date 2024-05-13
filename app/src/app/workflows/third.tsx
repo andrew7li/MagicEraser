@@ -1,10 +1,11 @@
-import styles from "./second.module.scss";
+import styles from "./third.module.scss";
 import Box from "@mui/material/Box";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import { useState } from "react";
+import { ImageSegmentAPIResponse } from "~/types/ISegment";
 
 const mockData = {
   objects: [
@@ -91,16 +92,26 @@ const mockData = {
   ],
 };
 
-export default function Third() {
+type ThirdProps = {
+  segmentationData: ImageSegmentAPIResponse | undefined;
+  uploadThingUrl: string;
+};
+
+export default function Third(props: ThirdProps) {
+  const { segmentationData, uploadThingUrl } = props;
   const [object, setObject] = useState("");
 
   const handleChange = (event: SelectChangeEvent) => {
     setObject(event.target.value as string);
   };
 
-  return (
+  return !segmentationData ? (
+    <div>Error! No data found!</div>
+  ) : (
     <>
-      <div className={styles.leftContainer}>Fill me in!</div>
+      <div className={styles.leftContainer}>
+        <img src={uploadThingUrl} />
+      </div>
       <div className={styles.rightContainer}>
         <Box sx={{ minWidth: 120 }}>
           <FormControl fullWidth>
@@ -126,10 +137,8 @@ export default function Third() {
                 },
               }}
             >
-              {mockData.objects.map((element) => (
-                <MenuItem value={element.objectType}>
-                  {element.objectType}
-                </MenuItem>
+              {segmentationData.objects.map((element) => (
+                <MenuItem value={element.uuid}>{element.objectType}</MenuItem>
               ))}
             </Select>
           </FormControl>

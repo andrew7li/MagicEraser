@@ -13,6 +13,7 @@ type SecondProps = {
   setWorkflow: (newWorkflow: number) => void;
   file: File | null | undefined;
   setSegmentationData: (response: ImageSegmentAPIResponse) => void;
+  setUploadThingUrl: (uploadThingUrl: string) => void;
 };
 
 type Area = {
@@ -23,7 +24,7 @@ type Area = {
 };
 
 export default function Second(props: SecondProps) {
-  const { setWorkflow, file, setSegmentationData } = props;
+  const { setWorkflow, file, setSegmentationData, setUploadThingUrl } = props;
 
   const [imageSrc, setImageSrc] = useState("");
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -48,6 +49,7 @@ export default function Second(props: SecondProps) {
     onClientUploadComplete: (uploadResponse) => {
       console.log("Uploaded successfully to UploadThing!", uploadResponse);
       console.log("UploadThing's URL", uploadResponse[0].url);
+      setUploadThingUrl(uploadResponse[0].url);
       callImageSegmentsAPI(uploadResponse[0].url);
     },
     onUploadError: () => {

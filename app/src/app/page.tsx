@@ -18,6 +18,7 @@ export default function Home() {
   const [workflow, setWorkflow] = useState(2);
   const [segmentationData, setSegmentationData] =
     useState<ImageSegmentAPIResponse>();
+  const [uploadThingUrl, setUploadThingUrl] = useState<String>();
 
   const resizeFile = (file: File): Promise<File> =>
     new Promise((resolve, reject) => {
@@ -86,9 +87,13 @@ export default function Home() {
             setWorkflow={setWorkflow}
             file={file}
             setSegmentationData={setSegmentationData}
+            setUploadThingUrl={setUploadThingUrl}
           />
         ) : workflow === 2 ? (
-          <Third />
+          <Third
+            segmentationData={segmentationData}
+            uploadThingUrl={uploadThingUrl}
+          />
         ) : null}
       </div>
 
