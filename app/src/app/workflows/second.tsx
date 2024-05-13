@@ -1,10 +1,12 @@
 import styles from "./second.module.scss";
-import Cropper from "react-easy-crop";
-import { useState } from "react";
-import getCroppedImg from "../../utils/cropImage";
-import Button from "@mui/material/Button";
 
+import Button from "@mui/material/Button";
 import axios from "axios";
+import { useEffect, useState } from "react";
+import Cropper from "react-easy-crop";
+import getCroppedImg from "../../utils/cropImage";
+
+import { useUploadThing } from "~/utils/uploadthing";
 
 type SecondProps = {
   setWorkflow: (newWorkflow: number) => void;
@@ -20,6 +22,39 @@ type Area = {
 
 export default function Second(props: SecondProps) {
   const { setWorkflow, file } = props;
+
+  const [imageSrc, setImageSrc] = useState("");
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area>();
+  const [croppedImage, setCroppedImage] = useState<string | null>();
+  const [rotation, setRotation] = useState(0);
+  const [showCroppedImage, setShowCroppedImage] = useState(false);
+
+  // Function to handle when the file is set or changed
+  useEffect(() => {
+    if (file) {
+      const fileUrl = URL.createObjectURL(file);
+      setImageSrc(fileUrl);
+
+      // Cleanup the URL when the component unmounts or file changes
+      return () => {
+        URL.revokeObjectURL(fileUrl);
+      };
+    }
+  }, [file]);
+
+  const { startUpload, permittedFileInfo } = useUploadThing("imageUploader", {
+    onClientUploadComplete: () => {
+      // alert("uploaded successfully!");
+    },
+    onUploadError: () => {
+      // alert("error occurred while uploading");
+    },
+    onUploadBegin: () => {
+      // alert("upload has begun");
+    },
+  });
 
   const callImageSegmentsAPI = (url: string) => {
     axios
@@ -39,38 +74,42 @@ export default function Second(props: SecondProps) {
       );
   };
 
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area>();
-  const [croppedImage, setCroppedImage] = useState<string | null>();
-  const [rotation, setRotation] = useState(0);
-  const [showCroppedImage, setShowCroppedImage] = useState(false);
-
-  const img =
-    "https://img.huffingtonpost.com/asset/5ab4d4ac2000007d06eb2c56.jpeg?cache=sih0jwle4e&ops=1910_1000";
-
   const onCropComplete = (croppedArea: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
   };
 
-  const handleButtonClick = async () => {
-    setShowCroppedImage(true);
+  const handleGetSegmentButtonClick = async () => {
+    // setShowCroppedImage(true);
     try {
       const croppedImage = await getCroppedImg(
-        img,
+        imageSrc,
         croppedAreaPixels!,
         rotation
       );
-      console.log("done", { croppedImage });
+      console.log("Successfully cropped!", { croppedImage });
       setCroppedImage(croppedImage);
+
+      // Fetch the blob from the local blob URL
+      fetch(croppedImage!)
+        .then((response) => response.blob())
+        .then((blob) => {
+          // Now that you have the blob, create a File object
+          const file = new File([blob], "cropped-image.jpeg", {
+            type: "image/jpeg",
+          });
+
+          // Upload the file
+          startUpload([file]);
+        })
+        .catch((error) =>
+          console.error("Failed to fetch blob from URL:", error)
+        );
+
+      // callImageSegmentsAPI(croppedImage!);
     } catch (e) {
       console.error(e);
     }
   };
-
-  // const handleGetSegmentButtonClick = () => {
-  //   callImageSegmentsAPI(file);
-  // };
 
   return !file ? (
     <div>Error! No file found!</div>
@@ -78,7 +117,7 @@ export default function Second(props: SecondProps) {
     <>
       <div className={styles.leftContainer}>
         <Cropper
-          image={img}
+          image={imageSrc}
           crop={crop}
           zoom={zoom}
           aspect={1}
@@ -86,9 +125,6 @@ export default function Second(props: SecondProps) {
           onZoomChange={setZoom}
           onCropComplete={onCropComplete}
         />
-        <Button onClick={handleButtonClick} variant="contained" color="primary">
-          Show Result
-        </Button>
       </div>
       <div className={styles.rightContainer}>
         <p>
@@ -97,7 +133,7 @@ export default function Second(props: SecondProps) {
         </p>
         <div
           className={styles.getSegmentButton}
-          // onClick={handleGetSegmentButtonClick}
+          onClick={handleGetSegmentButtonClick}
         >
           Get Image Segments
         </div>
