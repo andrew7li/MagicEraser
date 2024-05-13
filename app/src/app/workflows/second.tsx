@@ -8,6 +8,7 @@ import Cropper from "react-easy-crop";
 import { ImageSegmentAPIResponse } from "~/types/ISegment";
 import { useUploadThing } from "~/utils/uploadthing";
 import getCroppedImg from "../../utils/cropImage";
+import Resizer from "react-image-file-resizer";
 
 type SecondProps = {
   file: File | null | undefined;
@@ -33,7 +34,7 @@ export default function Second(props: SecondProps) {
   const [rotation, _] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Function to handle when the file is set or changed
+  // useEffect to handle when the file is set or changed.
   useEffect(() => {
     if (file) {
       const fileUrl = URL.createObjectURL(file);
@@ -44,6 +45,55 @@ export default function Second(props: SecondProps) {
       };
     }
   }, [file]);
+
+  /**
+   * Function to resize image file before sending it to backend.
+   */
+  const resizeFile = (file: File): Promise<File> =>
+    new Promise((resolve, reject) => {
+      Resizer.imageFileResizer(
+        file,
+        512,
+        512,
+        "JPEG",
+        100,
+        0,
+        (uri) => {
+          // Ensure uri is a base64 string and not null
+          if (typeof uri === "string") {
+            // Convert base64 to Blob
+            const blob = base64ToBlob(uri, "image/jpeg");
+
+            // Convert Blob to File
+            const newFile = new File([blob], "resized-image.jpeg", {
+              type: "image/jpeg",
+            });
+
+            resolve(newFile);
+          } else {
+            reject(
+              new Error("Unexpected URI type from Resizer.imageFileResizer")
+            );
+          }
+        },
+        "base64",
+        512,
+        512
+      );
+    });
+
+  /**
+   * Helper function to convert base64 string to Blob
+   */
+  function base64ToBlob(base64: string, mimeType: string): Blob {
+    const byteCharacters = atob(base64.split(",")[1]);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
+  }
 
   const { startUpload, permittedFileInfo } = useUploadThing("imageUploader", {
     onClientUploadComplete: (uploadResponse) => {
@@ -86,31 +136,38 @@ export default function Second(props: SecondProps) {
   const handleGetSegmentButtonClick = async () => {
     setIsUploading(true);
     try {
-      const croppedImage = await getCroppedImg(
+      const croppedImageBlobUrl = await getCroppedImg(
         imageSrc,
         croppedAreaPixels!,
         rotation
       );
-      console.log("Successfully cropped!", { croppedImage });
+      console.log("Successfully cropped!", { croppedImageBlobUrl });
 
-      // Fetch the blob from the local blob URL
-      fetch(croppedImage!)
-        .then((response) => response.blob())
-        .then(async (blob) => {
-          // Now that you have the blob, create a File object
-          const newFile = new File([blob], file!.name, {
-            type: "image/jpeg",
-          });
+      if (croppedImageBlobUrl === null) {
+        throw new Error("Failed to obtain the cropped image.");
+      }
 
-          // Upload the file
-          await startUpload([newFile]);
-        })
-        .catch((error) => {
-          console.error("Failed to fetch blob from URL:", error);
-          setIsUploading(false);
-        });
-    } catch (e) {
-      console.error(e);
+      console.log("Successfully cropped!", { croppedImageBlobUrl });
+
+      // Fetch the blob from the blob URL
+      const response = await fetch(croppedImageBlobUrl);
+      const blob = await response.blob();
+
+      // Create a File from the Blob
+      const croppedImageFile = new File([blob], "cropped-image.jpeg", {
+        type: "image/jpeg",
+      });
+
+      console.log(croppedImageFile);
+
+      // Now resize the image file
+      const resizedFile = await resizeFile(croppedImageFile);
+      console.log("Successfully resized!", { resizedFile });
+
+      // Proceed with uploading or further processing
+      await startUpload([resizedFile]);
+    } catch (error) {
+      console.error(error);
       setIsUploading(false);
     }
   };
