@@ -38,8 +38,8 @@ export default function Fourth(props: FourthProps) {
       </div>
       <div className={styles.rightContainer}>
         <p>
-          Thanks for using Magic Eraser! Feel free to download the image or
-          upload a new image!
+          Thanks for using Magic Eraser! Feel free to download the final image
+          and/or upload a new image!
         </p>
         <div id={styles.button} onClick={handleDownloadButtonClick}>
           Download
