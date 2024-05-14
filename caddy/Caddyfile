@@ -1,0 +1,5 @@
+magic-eraser.abhyudaya.dev {
+	handle {
+		reverse_proxy :8000
+	}
+}

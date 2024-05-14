@@ -70,12 +70,15 @@ def get_image_segments(body: ImageSegmentRequestBody):
 
     objects = []
     for result in results:
+        if result.masks is None:
+            continue
+
         for mask, box in zip(result.masks.xy, result.boxes):
             object_name = yolo_model.names[int(box.cls)]
             min_x = int(np.min(mask[:, 0]))
             max_x = int(np.max(mask[:, 0]))
             min_y = int(np.min(mask[:, 1]))
-            max_y = int(np.min(mask[:, 1]))
+            max_y = int(np.max(mask[:, 1]))
             uuid_ = str(uuid.uuid4())
             mask_image = np.zeros_like(result.orig_img)
             points = np.int32([mask])
@@ -116,7 +119,7 @@ async def inpaint(body: InpaintRequestBody):
     mask_image = load_image(os.path.join(MASK_DATA_DIRECTORY, f"{body.uuid}.png"))
 
     image = inpaint_pipeline(
-        prompt="road", image=init_image, mask_image=mask_image
+        prompt=body.prompt, image=init_image, mask_image=mask_image
     ).images[0]
     path = tempfile.mktemp(".png")
 
