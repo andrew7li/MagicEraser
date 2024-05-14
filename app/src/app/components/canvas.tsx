@@ -41,7 +41,7 @@ export default function Canvas(props: CanvasProps) {
       {
         x: segmentationObject.topLeft.x,
         y: segmentationObject.topLeft.y,
-        width: segmentationObject.bottomLeft.x - segmentationObject.topLeft.x,
+        width: segmentationObject.topRight.x - segmentationObject.topLeft.x,
         height: segmentationObject.bottomLeft.y - segmentationObject.topLeft.y,
       },
     ];

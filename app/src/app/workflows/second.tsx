@@ -120,7 +120,14 @@ export default function Second(props: SecondProps) {
           console.log(response);
           setSegmentationData(response.data);
           setIsUploading(false);
-          setWorkflow(2);
+
+          if (response.data.objects.length === 0) {
+            alert(
+              "No objects detected! Please upload a new image or change the crop/zoom."
+            );
+          } else {
+            setWorkflow(2);
+          }
         },
         (error) => {
           console.log(error);
