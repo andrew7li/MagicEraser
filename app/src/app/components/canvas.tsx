@@ -10,7 +10,6 @@ export default function Canvas(props: CanvasProps) {
   const { segmentationObject, uploadThingUrl } = props;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  console.log(segmentationObject);
   useEffect(() => {
     if (!uploadThingUrl || !canvasRef.current || !segmentationObject) {
       return;

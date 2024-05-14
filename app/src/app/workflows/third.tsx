@@ -35,7 +35,7 @@ const theme = createTheme({
 export default function Third(props: ThirdProps) {
   const { segmentationData, uploadThingUrl, setWorkflow, setFinalOutputUrl } =
     props;
-  const [objectIdx, setObjectIdx] = useState<string>("");
+  const [objectIdx, setObjectIdx] = useState<string>("0");
   const [uuid, setUuid] = useState<string>("");
   const [prompt, setPrompt] = useState<string>("");
   const [isInpainting, setIsInpainting] = useState(false);
