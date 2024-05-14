@@ -69,15 +69,9 @@ $font-size-quaternary: 0.75rem;
   }
 
   @media only screen and (max-width: 680px) {
-    .imageContainer {
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-
-      .imageDemoContainer,
-      .imageUploadContainer {
-        width: 90%;
-      }
+    .headerContainer {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
     }
 
     .middleContainer {
@@ -86,10 +80,14 @@ $font-size-quaternary: 0.75rem;
       justify-content: center;
       align-items: center;
       height: 800px;
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
     }
 
     .descriptionContainer {
       margin-bottom: 3.5rem;
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
     }
   }
 }
