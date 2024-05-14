@@ -40,13 +40,6 @@ export default function Third(props: ThirdProps) {
   const [prompt, setPrompt] = useState<string>("");
   const [isInpainting, setIsInpainting] = useState(false);
 
-  useEffect(() => {
-    if (!segmentationData || !objectIdx) {
-      return;
-    }
-    console.log(segmentationData.objects[Number(objectIdx)]);
-  }, [objectIdx, segmentationData]);
-
   /**
    * Handler function for when the prompt changes.
    */
@@ -80,13 +73,12 @@ export default function Third(props: ThirdProps) {
       })
       .then(
         (response) => {
-          console.log(response);
           setFinalOutputUrl(response.data.url);
           setWorkflow(3);
           setIsInpainting(false);
         },
         (error) => {
-          console.log(error);
+          console.error(error);
           setIsInpainting(false);
         }
       );

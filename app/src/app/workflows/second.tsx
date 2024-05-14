@@ -97,8 +97,6 @@ export default function Second(props: SecondProps) {
 
   const { startUpload, permittedFileInfo } = useUploadThing("imageUploader", {
     onClientUploadComplete: (uploadResponse) => {
-      console.log("Uploaded successfully to UploadThing!", uploadResponse);
-      console.log("UploadThing's URL", uploadResponse[0].url);
       setUploadThingUrl(uploadResponse[0].url);
       callImageSegmentsAPI(uploadResponse[0].url);
     },
@@ -117,7 +115,6 @@ export default function Second(props: SecondProps) {
       })
       .then(
         (response) => {
-          console.log(response);
           setSegmentationData(response.data);
           setIsUploading(false);
 
@@ -130,7 +127,7 @@ export default function Second(props: SecondProps) {
           }
         },
         (error) => {
-          console.log(error);
+          console.error(error);
           setIsUploading(false);
         }
       );
@@ -148,13 +145,10 @@ export default function Second(props: SecondProps) {
         croppedAreaPixels!,
         rotation
       );
-      console.log("Successfully cropped!", { croppedImageBlobUrl });
 
       if (croppedImageBlobUrl === null) {
         throw new Error("Failed to obtain the cropped image.");
       }
-
-      console.log("Successfully cropped!", { croppedImageBlobUrl });
 
       // Fetch the blob from the blob URL
       const response = await fetch(croppedImageBlobUrl);
@@ -165,11 +159,8 @@ export default function Second(props: SecondProps) {
         type: "image/jpeg",
       });
 
-      console.log(croppedImageFile);
-
       // Now resize the image file
       const resizedFile = await resizeFile(croppedImageFile);
-      console.log("Successfully resized!", { resizedFile });
 
       // Proceed with uploading or further processing
       await startUpload([resizedFile]);
