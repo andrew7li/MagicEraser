@@ -112,7 +112,7 @@ export default function Second(props: SecondProps) {
 
   const callImageSegmentsAPI = (url: string) => {
     axios
-      .post(process.env.NEXT_PUBLIC_ENDPOINT + "/getImageSegments", {
+      .post("https://magic-eraser.abhyudaya.dev/getImageSegments", {
         url: url,
       })
       .then(

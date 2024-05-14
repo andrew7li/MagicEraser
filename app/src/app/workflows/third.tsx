@@ -73,7 +73,7 @@ export default function Third(props: ThirdProps) {
     }
     setIsInpainting(true);
     axios
-      .post(process.env.NEXT_PUBLIC_ENDPOINT + "/inpaintImage", {
+      .post("https://magic-eraser.abhyudaya.dev/inpaintImage", {
         url: uploadThingUrl,
         uuid: uuid,
         prompt: prompt,
