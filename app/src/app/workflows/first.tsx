@@ -7,6 +7,15 @@ type FirstProps = {
   setFile: (file: File | null) => void;
 };
 
+const imgUrls = [
+  "sample1.jpg",
+  "sample2.jpeg",
+  "sample3.jpeg",
+  "sample4.avif",
+  "sample5.jpeg",
+  "sample6.jpeg",
+];
+
 export default function First(props: FirstProps) {
   const { setWorkflow, setFile } = props;
 
@@ -18,6 +27,30 @@ export default function First(props: FirstProps) {
     if (files && files.length > 0) {
       setFile(files[0]);
     }
+    setWorkflow(1);
+  };
+
+  /**
+   * Function to handle image click.
+   */
+  const handleImageClick = (idx: number) => {
+    const imgUrl = imgUrls[idx];
+
+    fetch(imgUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.blob(); // Convert the response to a blob.
+      })
+      .then((blob) => {
+        const file = new File([blob], imgUrl, { type: blob.type }); // Creates a file with the correct MIME type.
+        setFile(file); // Update the state with the new file.
+      })
+      .catch((error) => {
+        console.error("Error fetching the image:", error);
+      });
+
     setWorkflow(1);
   };
 
@@ -66,24 +99,15 @@ export default function First(props: FirstProps) {
         <div className={styles.sampleImagesContainer}>
           <p>Try one of these now!</p>
           <ul>
-            <li>
-              <img src="/IMG_8916.jpeg" alt="Demo of Magic Eraser" />{" "}
-            </li>
-            <li>
-              <img src="/IMG_8916.jpeg" alt="Demo of Magic Eraser" />{" "}
-            </li>
-            <li>
-              <img src="/IMG_8916.jpeg" alt="Demo of Magic Eraser" />{" "}
-            </li>
-            <li>
-              <img src="/IMG_8916.jpeg" alt="Demo of Magic Eraser" />{" "}
-            </li>
-            <li>
-              <img src="/IMG_8916.jpeg" alt="Demo of Magic Eraser" />{" "}
-            </li>
-            <li>
-              <img src="/IMG_8916.jpeg" alt="Demo of Magic Eraser" />{" "}
-            </li>
+            {imgUrls.map((ele, idx) => (
+              <li key={ele}>
+                <img
+                  src={ele}
+                  alt="description"
+                  onClick={() => handleImageClick(idx)}
+                />
+              </li>
+            ))}
           </ul>
         </div>
       </div>
